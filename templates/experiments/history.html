@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Experiment History - ML Model Evaluator{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 1.5rem; font-weight: 700;">Experiment History & Comparison</h1>
+        <p style="color: var(--gray-700); font-size: 0.9rem;">Review all trained models, inspect historical metrics, and select 2 or more models to compare.</p>
+    </div>
+    <div>
+        <a href="/" class="btn" style="background-color: var(--primary);">+ Upload New Dataset</a>
+    </div>
+</div>
+
+<div class="card">
+    <form method="GET" action="{% url 'experiment-compare-web' %}">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 class="card-title" style="margin: 0;">Historical Runs</h2>
+            <button type="submit" class="btn" style="background-color: #7c3aed; margin: 0;">📊 Compare Selected</button>
+        </div>
+
+        {% if experiments %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background: var(--gray-100); text-align: left; border-bottom: 2px solid var(--gray-200);">
+                        <th style="padding: 0.75rem 1rem; width: 40px;">Select</th>
+                        <th style="padding: 0.75rem 1rem;">ID</th>
+                        <th style="padding: 0.75rem 1rem;">Model</th>
+                        <th style="padding: 0.75rem 1rem;">Type</th>
+                        <th style="padding: 0.75rem 1rem;">Dataset</th>
+                        <th style="padding: 0.75rem 1rem;">Key Metric</th>
+                        <th style="padding: 0.75rem 1rem;">Runtime</th>
+                        <th style="padding: 0.75rem 1rem;">Trained At</th>
+                        <th style="padding: 0.75rem 1rem;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exp in experiments %}
+                    <tr style="border-bottom: 1px solid var(--gray-200);">
+                        <td style="padding: 0.75rem 1rem; text-align: center;">
+                            <input type="checkbox" name="exp_id" value="{{ exp.id }}">
+                        </td>
+                        <td style="padding: 0.75rem 1rem;">
+                            <span class="badge">#{{ exp.id }}</span>
+                        </td>
+                        <td style="padding: 0.75rem 1rem;">
+                            <strong>{{ exp.model_display_name }}</strong>
+                        </td>
+                        <td style="padding: 0.75rem 1rem; text-transform: capitalize;">
+                            <span style="font-weight: 500; color: {% if exp.problem_type == 'classification' %}#2563eb{% else %}#16a34a{% endif %};">
+                                {{ exp.problem_type }}
+                            </span>
+                        </td>
+                        <td style="padding: 0.75rem 1rem;">{{ exp.dataset.filename }}</td>
+                        <td style="padding: 0.75rem 1rem;">
+                            {% if exp.problem_type == 'classification' %}
+                                F1: <strong>{{ exp.metrics.f1_score|default:"-" }}</strong> &bull; Acc: {{ exp.metrics.accuracy|default:"-" }}
+                            {% else %}
+                                RMSE: <strong>{{ exp.metrics.rmse|default:"-" }}</strong> &bull; R²: {{ exp.metrics.r2_score|default:"-" }}
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.75rem 1rem;">{{ exp.training_time_seconds }}s</td>
+                        <td style="padding: 0.75rem 1rem; color: #64748b;">{{ exp.created_at|date:"M d, H:i" }}</td>
+                        <td style="padding: 0.75rem 1rem;">
+                            <a href="{% url 'experiment-results-web' exp.id %}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; margin: 0;">Results</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: #64748b; font-style: italic; padding: 2rem 0; text-align: center;">
+            No experiments found. <a href="/">Upload a dataset</a> and train a model to begin!
+        </p>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}
+

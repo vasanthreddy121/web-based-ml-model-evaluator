@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - ML Model Evaluator{% endblock %}
+
+{% block content %}
+<div style="max-width: 440px; margin: 2rem auto;">
+    <div class="card">
+        <h1 class="card-title" style="text-align: center; margin-bottom: 0.5rem;">Sign In</h1>
+        <p class="card-desc" style="text-align: center; margin-bottom: 1.5rem;">Access your datasets and ML experiments</p>
+
+        <form method="POST">
+            {% csrf_token %}
+            <div style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;" for="username">Username</label>
+                <input type="text" name="username" id="username" class="form-control" style="width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 0.95rem;" required autofocus>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;" for="password">Password</label>
+                <input type="password" name="password" id="password" class="form-control" style="width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 0.95rem;" required>
+            </div>
+
+            <button type="submit" class="btn" style="width: 100%; padding: 0.75rem; font-size: 1rem;">Sign In</button>
+        </form>
+
+        <p style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: var(--gray-700);">
+            Don't have an account? <a href="{% url 'register-web' %}" style="color: var(--primary); font-weight: 600;">Register here</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
+

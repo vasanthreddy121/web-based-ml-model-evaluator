@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Model Comparison - ML Model Evaluator{% endblock %}
+
+{% block extra_head %}
+<style>
+    .winner-card {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border: 2px solid #3b82f6;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .winner-badge {
+        display: inline-block;
+        background: #2563eb;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 0.85rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+    .comp-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+    .comp-table th, .comp-table td {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--gray-200);
+    }
+    .comp-table th {
+        background: var(--gray-100);
+        font-weight: 600;
+    }
+    .bar-row {
+        margin-bottom: 1rem;
+    }
+    .bar-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        display: flex;
+        justify-content: space-between;
+    }
+    .bar-track {
+        height: 20px;
+        background-color: var(--gray-200);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .bar-fill {
+        height: 100%;
+        background-color: var(--primary);
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 1.5rem; font-weight: 700;">Multi-Model Experiment Comparison</h1>
+        <p style="color: var(--gray-700); font-size: 0.9rem;">
+            Comparing {{ comparison.count }} experiments &bull;
+            Workflow: <strong style="text-transform: capitalize;">{{ comparison.problem_type }}</strong>
+        </p>
+    </div>
+    <div>
+        <a href="{% url 'experiment-history-web' %}" class="btn" style="background-color: #64748b;">&larr; Back to History</a>
+    </div>
+</div>
+
+{% if comparison.best_model_name %}
+<div class="winner-card">
+    <div>
+        <span class="winner-badge">⭐ Recommended Top Performer</span>
+        <h2 style="font-size: 1.5rem; font-weight: 700; color: #1e3a8a;">{{ comparison.best_model_name }}</h2>
+        <p style="color: #1e40af; font-size: 0.9rem;">Achieved the best score among evaluated experiments in this comparison cohort.</p>
+    </div>
+    <div>
+        <a href="{% url 'experiment-results-web' comparison.best_experiment_id %}" class="btn" style="background-color: #2563eb;">Inspect Top Model &rarr;</a>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2 class="card-title">Comparative Metrics Table</h2>
+    <p class="card-desc">Direct head-to-head performance comparison across all evaluated algorithms.</p>
+    <div style="overflow-x: auto;">
+        <table class="comp-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Model Name</th>
+                    {% if comparison.problem_type == 'classification' %}
+                        <th>Accuracy</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1 Score</th>
+                        <th>ROC-AUC</th>
+                    {% else %}
+                        <th>MAE</th>
+                        <th>MSE</th>
+                        <th>RMSE</th>
+                        <th>R² Score</th>
+                    {% endif %}
+                    <th>Runtime</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in comparison.comparison_table %}
+                <tr {% if row.id == comparison.best_experiment_id %}style="background-color: #f0fdf4; font-weight: 600;"{% endif %}>
+                    <td>#{{ row.id }}</td>
+                    <td>
+                        {{ row.model_display_name }}
+                        {% if row.id == comparison.best_experiment_id %}
+                            <span style="color: #16a34a; font-size: 0.8rem; margin-left: 0.5rem;">[Top Model]</span>
+                        {% endif %}
+                    </td>
+                    {% if comparison.problem_type == 'classification' %}
+                        <td>{{ row.metrics.accuracy|default:"-" }}</td>
+                        <td>{{ row.metrics.precision|default:"-" }}</td>
+                        <td>{{ row.metrics.recall|default:"-" }}</td>
+                        <td><strong>{{ row.metrics.f1_score|default:"-" }}</strong></td>
+                        <td>{{ row.metrics.roc_auc|default:"N/A" }}</td>
+                    {% else %}
+                        <td>{{ row.metrics.mae|default:"-" }}</td>
+                        <td>{{ row.metrics.mse|default:"-" }}</td>
+                        <td><strong>{{ row.metrics.rmse|default:"-" }}</strong></td>
+                        <td>{{ row.metrics.r2_score|default:"-" }}</td>
+                    {% endif %}
+                    <td>{{ row.training_time_seconds }}s</td>
+                    <td style="color: #64748b;">{{ row.created_at }}</td>
+                    <td>
+                        <a href="{% url 'experiment-results-web' row.id %}" class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; margin: 0;">Inspect</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
