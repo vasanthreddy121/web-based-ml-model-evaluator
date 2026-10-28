@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Results - {{ experiment.model_display_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .metric-card {
+        background: #ffffff;
+        border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        padding: 1.25rem;
+        text-align: center;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .metric-val {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-top: 0.25rem;
+    }
+    .metric-label {
+        font-size: 0.8rem;
+        color: var(--gray-700);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .table-container {
+        overflow-x: auto;
+        margin-top: 1rem;
+        border: 1px solid var(--gray-200);
+        border-radius: 6px;
+    }
+    .table-container table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+    .table-container th {
+        background-color: var(--gray-100);
+        padding: 0.6rem 0.75rem;
+        text-align: left;
+        border-bottom: 2px solid var(--gray-200);
+        white-space: nowrap;
+    }
+    .table-container td {
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid var(--gray-200);
+        white-space: nowrap;
+    }
+    .cm-cell {
+        text-align: center !important;
+        font-weight: 600;
+        background-color: #f8fafc;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 1.5rem; font-weight: 700;">Evaluation Results: {{ experiment.model_display_name }}</h1>
+        <p style="color: var(--gray-700); font-size: 0.9rem;">
+            Dataset: <strong>{{ experiment.dataset.filename }}</strong> &bull;
+            Type: <span style="text-transform: capitalize; font-weight: 600;">{{ experiment.problem_type }}</span> &bull;
+            Trained in {{ experiment.training_time_seconds }}s
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'experiment-train-web' experiment.dataset.id %}" class="btn" style="background-color: #64748b;">+ Train Another</a>
+        <a href="{% url 'experiment-history-web' %}" class="btn" style="background-color: #334155;">All Experiments</a>
+        <a href="{% url 'experiment-export-api' experiment.id %}?format=json" class="btn" style="background-color: #0284c7;">Export JSON</a>
+        <a href="{% url 'experiment-export-api' experiment.id %}?format=csv" class="btn" style="background-color: #16a34a;">Export CSV</a>
+    </div>
+</div>
+
+<div class="metrics-grid">
+    {% if experiment.problem_type == 'classification' %}
+        <div class="metric-card">
+            <div class="metric-label">Accuracy</div>
+            <div class="metric-val">{{ metrics.accuracy|default:"0.0" }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Precision (Weighted)</div>
+            <div class="metric-val">{{ metrics.precision|default:"0.0" }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Recall (Weighted)</div>
+            <div class="metric-val">{{ metrics.recall|default:"0.0" }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">F1 Score (Weighted)</div>
+            <div class="metric-val">{{ metrics.f1_score|default:"0.0" }}</div>
+        </div>
+        {% if metrics.roc_auc %}
+        <div class="metric-card">
+            <div class="metric-label">ROC-AUC</div>
+            <div class="metric-val">{{ metrics.roc_auc }}</div>
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="metric-card">
+            <div class="metric-label">MAE</div>
+            <div class="metric-val">{{ metrics.mae|default:"0.0" }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">MSE</div>
+            <div class="metric-val">{{ metrics.mse|default:"0.0" }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">RMSE</div>
+            <div class="metric-val">{{ metrics.rmse|default:"0.0" }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">R² Score</div>
+            <div class="metric-val">{{ metrics.r2_score|default:"0.0" }}</div>
+        </div>
+    {% endif %}
+</div>
+
+{% if experiment.problem_type == 'classification' and metrics.confusion_matrix %}
+<div class="card">
+    <h2 class="card-title">Confusion Matrix</h2>
+    <p class="card-desc">Contingency matrix showing true vs predicted class distributions.</p>
+    <div class="table-container" style="max-width: 500px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Actual \ Pred</th>
+                    {% for c in metrics.classes %}
+                        <th style="text-align: center;">Class {{ c }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in metrics.confusion_matrix %}
+                <tr>
+                    <td><strong>Class {{ metrics.classes|slice:forloop.counter0|last|default:forloop.counter0 }}</strong></td>
+                    {% for count in row %}
+                        <td class="cm-cell">{{ count }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2 class="card-title">Test Predictions Sample (Top 20)</h2>
+    <p class="card-desc">Comparison between ground truth target and model predictions on held-out test data.</p>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Sample #</th>
+                    <th>Actual Target</th>
+                    <th>Predicted Output</th>
+                    {% if experiment.problem_type == 'regression' %}
+                        <th>Absolute Error</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in predictions %}
+                <tr>
+                    <td>{{ item.index }}</td>
+                    <td><strong>{{ item.actual }}</strong></td>
+                    <td>{{ item.predicted }}</td>
+                    {% if experiment.problem_type == 'regression' %}
+                        <td>{{ item.error|default:"0.0" }}</td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" style="text-align: center; color: #64748b;">No test predictions available.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

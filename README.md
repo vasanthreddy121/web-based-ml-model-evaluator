@@ -6,13 +6,19 @@ The system allows users to upload datasets, perform preprocessing, select and co
 
 ---
 
-## Project Documentation
+## Project Documentation & Deliverables
 
-The following documents describe the requirements, architecture, and testing strategy of the system:
+The following documents describe the requirements, architecture, testing strategy, and project execution evidence:
 
-- **[Software Requirements Specification (SRS)](docs/SRS/SRS.pdf)**
-- **[Software Architecture Design](docs/Software_Architecture_Design/Software_Architecture_Design.pdf)**
-- **[Software Test Plan (STP)](docs/STP/STP.pdf)**
+- **[Software Requirements Specification (SRS)](docs/SRS/SRS_TEAM_16_SE_MINIPROJECT.pdf)**
+- **[Software Architecture Design (SAD)](docs/docs/Software_Architecture_Design/SAD_TEAM_16_SE.pdf)**
+- **[Software Test Plan (STP)](docs/Test_Plan/Web_Based_ML_Model_Evaluator_STP_TEAM16.pdf)**
+- **[Requirements Traceability Matrix (RTM)](docs/REQUIREMENTS_TRACEABILITY_MATRIX.md)**
+- **[Automated Test Execution Report (48/48 Tests Passed)](docs/TEST_EXECUTION_REPORT.md)**
+- **[Sprint Report (Part 2 — 26 Story Points)](docs/SPRINT_REPORT_PART2.md)**
+- **[Project Deviation Log](docs/DEVIATION_LOG.md)**
+- **[Pull Request & Commit Manifest](docs/PULL_REQUEST_TEMPLATES.md)**
+- **[Demonstration Scripts & Synthetic Dataset](docs/demos/)**
 
 ---
 
@@ -221,3 +227,85 @@ Therefore, the three documents provide a complete engineering chain:
 **Requirements → Architecture → Implementation → Testing**
 
 Together, they provide a structured basis for designing, implementing, testing, and accepting the **Web-Based ML Model Evaluator**.
+
+---
+
+# 5. Local Setup and Execution Instructions
+
+### Prerequisites
+- Python 3.12+
+- `pip` and `virtualenv`
+
+### Quickstart Setup
+
+1. **Clone and enter repository:**
+   ```bash
+   git clone https://github.com/vasanthreddy121/web-based-ml-model-evaluator.git
+   cd web-based-ml-model-evaluator
+   ```
+
+2. **Create and activate a virtual environment:**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Apply database migrations:**
+   ```bash
+   python manage.py migrate
+   ```
+
+5. **Run the local development server:**
+   ```bash
+   python manage.py runserver
+   ```
+   Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser to access the Web UI.
+
+### Running Automated Tests
+
+To run the complete automated test suite:
+```bash
+pytest
+```
+Or using Django's test runner:
+```bash
+python manage.py test tests
+```
+To run tests with code coverage reporting across all modules:
+```bash
+pytest --cov=datasets --cov=experiments --cov=accounts --cov-report=term-missing
+```
+
+### Complete REST API Reference
+
+| Endpoint | Method | Purpose | Issue / SRS |
+|---|---|---|---|
+| `/api/auth/register/` | `POST` | Register a new user account | SRS `ML-EVAL-F-001` |
+| `/api/auth/login/` | `POST` | Authenticate user and initiate session | SRS `ML-EVAL-F-002` |
+| `/api/auth/logout/` | `POST` | Terminate user session | SRS `ML-EVAL-F-003` |
+| `/api/auth/me/` | `GET` | Inspect active session context | SRS `ML-EVAL-F-002` |
+| `/api/datasets/upload/` | `POST` | Upload and validate CSV dataset (max 10 MB) | Issue #1 (`ML-EVAL-F-010`) |
+| `/api/datasets/<id>/preview/` | `GET` | Preview rows, column types, missingness, and stats | Issue #2 (`ML-EVAL-F-012`) |
+| `/api/datasets/<id>/preprocess/` | `POST` | Configure imputation, encoding, scaling, and split | Issue #3 (`ML-EVAL-F-013` to `F-015`) |
+| `/api/experiments/train/` | `POST` | Train supported model and compute evaluation metrics | Issue #4 & #5 (`ML-EVAL-F-020` to `F-034`) |
+| `/api/experiments/<id>/results/` | `GET` | Retrieve metrics, predictions, and hyperparameters | Issue #5 (`ML-EVAL-F-042`) |
+| `/api/experiments/compare/` | `POST` | Compare 2+ compatible experiments head-to-head | Issue #5 (`ML-EVAL-F-040`) |
+| `/api/experiments/<id>/export/` | `GET` | Export evaluation results (`?format=json` or `?format=csv`) | Issue #5 (`ML-EVAL-F-043`) |
+
+### Supported Machine Learning Algorithms
+
+- **Classification (6 Models):** Logistic Regression, Decision Tree Classifier, Random Forest Classifier, K-Nearest Neighbors (KNN), Support Vector Machine (SVM), Gaussian Naive Bayes.
+- **Regression (5 Models):** Linear Regression, Decision Tree Regressor, Random Forest Regressor, Support Vector Regressor (SVR), Gradient Boosting Regressor.
+
+### Demonstration & Review Video Artifacts
+
+Pre-configured video scripts, shot lists, and a reproducible synthetic dataset are available in [`docs/demos/`](docs/demos/):
+- **Sprint 1 (1 Minute):** [`docs/demos/SPRINT_1_DEMO_SCRIPT.md`](docs/demos/SPRINT_1_DEMO_SCRIPT.md)
+- **Sprint 2 (2 Minutes):** [`docs/demos/SPRINT_2_DEMO_SCRIPT.md`](docs/demos/SPRINT_2_DEMO_SCRIPT.md)
+- **Demo Dataset:** [`docs/demos/demo_dataset.csv`](docs/demos/demo_dataset.csv)
+- **Recording Guide:** [`docs/demos/RECORDING_INSTRUCTIONS.md`](docs/demos/RECORDING_INSTRUCTIONS.md)

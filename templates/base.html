@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Web-Based ML Model Evaluator{% endblock %}</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-700: #334155;
+            --gray-900: #0f172a;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--gray-50);
+            color: var(--gray-900);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { font-size: 1.25rem; font-weight: 700; color: var(--primary); text-decoration: none; }
+        .nav-links a { margin-left: 1rem; color: var(--gray-700); text-decoration: none; font-weight: 500; }
+        .nav-links a:hover { color: var(--primary); }
+        main { flex: 1; padding: 2rem; max-width: 1000px; margin: 0 auto; width: 100%; }
+        .alert {
+            padding: 0.875rem 1.25rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+        .alert-success { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+        .alert-error { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        footer {
+            background-color: #ffffff;
+            border-top: 1px solid var(--gray-200);
+            padding: 1rem 2rem;
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--gray-700);
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <header>
+        <a href="/" class="logo">⚡ ML Model Evaluator</a>
+        <div class="nav-links" style="display: flex; align-items: center; gap: 1rem;">
+            <a href="/">Datasets</a>
+            <a href="{% url 'experiment-history-web' %}">Experiments</a>
+            <a href="/api/datasets/upload/" target="_blank">API Docs</a>
+            {% if request.user.is_authenticated %}
+                <span style="font-size: 0.85rem; color: var(--gray-700); margin-left: 0.5rem;">
+                    👤 <strong>{{ request.user.username }}</strong>
+                </span>
+                <a href="{% url 'logout-web' %}" style="color: #dc2626; font-size: 0.85rem;">Sign Out</a>
+            {% else %}
+                <a href="{% url 'login-web' %}" style="font-size: 0.9rem;">Sign In</a>
+                <a href="{% url 'register-web' %}" class="btn" style="padding: 0.35rem 0.75rem; margin: 0; font-size: 0.85rem;">Register</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <main>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>Software Engineering Mini-Project — Team 16 (Web-Based ML Model Evaluator)</p>
+    </footer>
+</body>
+</html>
+

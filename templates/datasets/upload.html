@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Dataset - ML Model Evaluator{% endblock %}
+
+{% block extra_head %}
+<style>
+    .card {
+        background: #ffffff;
+        border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    .card-desc {
+        color: var(--gray-700);
+        font-size: 0.9rem;
+        margin-bottom: 1.25rem;
+    }
+    .upload-box {
+        border: 2px dashed var(--gray-200);
+        border-radius: 8px;
+        padding: 2.5rem;
+        text-align: center;
+        background: var(--gray-50);
+        transition: border-color 0.2s;
+    }
+    .upload-box:hover {
+        border-color: var(--primary);
+    }
+    .btn {
+        display: inline-block;
+        background-color: var(--primary);
+        color: #ffffff;
+        padding: 0.625rem 1.25rem;
+        border-radius: 6px;
+        border: none;
+        font-weight: 500;
+        cursor: pointer;
+        margin-top: 1rem;
+        text-decoration: none;
+        font-size: 0.95rem;
+    }
+    .btn:hover {
+        background-color: var(--primary-hover);
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+    th, td {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--gray-200);
+        font-size: 0.9rem;
+    }
+    th {
+        background-color: var(--gray-50);
+        font-weight: 600;
+        color: var(--gray-700);
+    }
+    .badge {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 9999px;
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 class="card-title">1. Dataset Upload & Validation</h1>
+    <p class="card-desc">Upload a CSV dataset to initiate the machine learning pipeline. Files are validated for extension, file size (max 10 MB), and readable tabular structure.</p>
+
+    <form method="POST" enctype="multipart/form-data" action="{% url 'dataset-web-upload' %}">
+        {% csrf_token %}
+        <div class="upload-box">
+            <input type="file" name="file" id="file" accept=".csv" required style="margin-bottom: 0.75rem;">
+            <p style="font-size: 0.85rem; color: #64748b;">Supported format: <strong>.csv</strong> (UTF-8, max 10 MB)</p>
+            <button type="submit" class="btn">Validate & Upload Dataset</button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h2 class="card-title">Uploaded Datasets</h2>
+    <p class="card-desc">Recent validated datasets stored in the local catalog.</p>
+
+    {% if datasets %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Filename</th>
+                <th>Rows</th>
+                <th>Columns</th>
+                <th>Size</th>
+                <th>Uploaded At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ds in datasets %}
+            <tr>
+                <td><span class="badge">#{{ ds.id }}</span></td>
+                <td><strong>{{ ds.filename }}</strong></td>
+                <td>{{ ds.row_count }}</td>
+                <td>{{ ds.column_count }}</td>
+                <td>{{ ds.file_size|filesizeformat }}</td>
+                <td>{{ ds.uploaded_at|date:"M d, Y H:i" }}</td>
+                <td>
+                    <a href="{% url 'dataset-preview-web' ds.id %}" class="btn" style="padding: 0.3rem 0.75rem; font-size: 0.8rem; margin: 0;">Preview & Profile</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #64748b; font-style: italic;">No datasets uploaded yet. Upload a CSV file above to get started.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
