@@ -383,3 +383,217 @@ def test_validate_csv_file_direct_unsupported_formats(filename):
     with pytest.raises(ValidationError) as excinfo:
         validate_csv_file(uploaded_file)
     assert 'Unsupported file format. Only CSV files (.csv) are accepted.' in str(excinfo.value)
+
+
+# =====================================================================
+# Issue #13: Tests for Empty and Malformed CSV Uploads
+# =====================================================================
+
+EMPTY_CSV_TEST_CASES = [
+    ("empty_zero_bytes.csv", b"", "The uploaded file is empty."),
+    ("empty_spaces.csv", b"     ", "The uploaded file is empty."),
+    ("empty_tabs.csv", b"\t\t\t\t", "The uploaded file is empty."),
+    ("empty_newlines.csv", b"\n\n\r\n\n", "The uploaded file is empty."),
+    ("empty_mixed_whitespace.csv", b"   \r\n\t  \n   ", "The uploaded file is empty."),
+]
+
+HEADER_ONLY_CSV_TEST_CASES = [
+    ("header_with_newline.csv", b"col1,col2,col3\n"),
+    ("header_without_newline.csv", b"col1,col2,col3"),
+    ("header_trailing_spaces.csv", b"feature_a,feature_b   \n"),
+    ("single_column_header_only.csv", b"target\n"),
+]
+
+MALFORMED_CSV_TEST_CASES = [
+    # Delimiters only or no recognizable column headers
+    ("delimiters_only.csv", b",,\n,,\n", "Dataset columns are invalid or missing names."),
+    ("delimiters_and_data.csv", b",,\n1,2,3\n", "Dataset columns are invalid or missing names."),
+    ("unnamed_headers.csv", b"Unnamed: 0,Unnamed: 1\n1,2\n", "Dataset columns are invalid or missing names."),
+    # Ragged rows / inconsistent field count per line
+    ("ragged_rows.csv", b"col1,col2,col3\n1,2,3\n4,5,6,7,8\n", "Malformed CSV file: Error tokenizing data"),
+    # Unclosed quotes
+    ("unclosed_quote.csv", b'col1,col2\n"unclosed,1\n2,3\n', "Malformed CSV file: Error tokenizing data"),
+    ("unclosed_multiline_quote.csv", b'col1,col2\n"start\n1,2\n', "Malformed CSV file: Error tokenizing data"),
+]
+
+VALID_BOUNDARY_CSV_TEST_CASES = [
+    ("single_row_valid.csv", b"col1,col2\n10,20\n", 1, 2),
+    ("quoted_commas.csv", b'name,address,tag\nAlice,"123 Main St, Apt 4",home\nBob,"456 Elm, Suite 2",work\n', 2, 3),
+    ("utf8_characters.csv", "name,city\nCaf\u00e9,M\u00fcnchen\nna\u00efve,S\u00e3o Paulo\n".encode("utf-8"), 2, 2),
+    ("utf8_bom.csv", b"\xef\xbb\xbfcol1,col2\n1,2\n3,4\n", 2, 2),
+    ("latin1_encoded.csv", "product,description\nCr\u00e8me,br\u00fbl\u00e9e\n".encode("latin-1"), 1, 2),
+]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("filename,content,expected_error", EMPTY_CSV_TEST_CASES)
+def test_issue_13_empty_csv_upload_api_rejected(client, filename, content, expected_error):
+    """
+    Issue #13: Verify that completely empty or whitespace-only CSV uploads are rejected
+    by the API with HTTP 400 Bad Request, creating no database record and leaving no storage file.
+    """
+    initial_count = Dataset.objects.count()
+    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
+    files_before = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+
+    api_url = reverse('dataset-upload-api')
+    uploaded_file = SimpleUploadedFile(filename, content, content_type="text/csv")
+    response = client.post(api_url, {'file': uploaded_file})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    data = response.json()
+    assert data['status'] == 'error'
+    assert expected_error in data['error']
+
+    assert Dataset.objects.count() == initial_count
+    assert not Dataset.objects.filter(filename=filename).exists()
+
+    files_after = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+    assert files_after == files_before
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("filename,content", HEADER_ONLY_CSV_TEST_CASES)
+def test_issue_13_header_only_csv_upload_api_rejected(client, filename, content):
+    """
+    Issue #13: Verify that CSVs with header columns but zero data rows are rejected
+    with HTTP 400 Bad Request, creating no database record and leaving no storage file.
+    """
+    initial_count = Dataset.objects.count()
+    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
+    files_before = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+
+    api_url = reverse('dataset-upload-api')
+    uploaded_file = SimpleUploadedFile(filename, content, content_type="text/csv")
+    response = client.post(api_url, {'file': uploaded_file})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    data = response.json()
+    assert data['status'] == 'error'
+    assert 'Dataset must contain at least one data row.' in data['error']
+
+    assert Dataset.objects.count() == initial_count
+    assert not Dataset.objects.filter(filename=filename).exists()
+
+    files_after = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+    assert files_after == files_before
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("filename,content,expected_error_snippet", MALFORMED_CSV_TEST_CASES)
+def test_issue_13_malformed_csv_upload_api_rejected(client, filename, content, expected_error_snippet):
+    """
+    Issue #13: Verify that malformed CSV files (ragged rows, unclosed quotes, delimiters only,
+    missing/unusable column names) are rejected with HTTP 400 Bad Request and clean storage.
+    """
+    initial_count = Dataset.objects.count()
+    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
+    files_before = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+
+    api_url = reverse('dataset-upload-api')
+    uploaded_file = SimpleUploadedFile(filename, content, content_type="text/csv")
+    response = client.post(api_url, {'file': uploaded_file})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    data = response.json()
+    assert data['status'] == 'error'
+    assert expected_error_snippet in data['error']
+
+    assert Dataset.objects.count() == initial_count
+    assert not Dataset.objects.filter(filename=filename).exists()
+
+    files_after = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+    assert files_after == files_before
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("filename,content,expected_rows,expected_cols", VALID_BOUNDARY_CSV_TEST_CASES)
+def test_issue_13_valid_boundary_csv_upload_api_accepted(client, filename, content, expected_rows, expected_cols):
+    """
+    Issue #13: Verify that boundary valid CSV files (single row, quoted commas, UTF-8,
+    UTF-8 BOM, and Latin-1 encodings) are accepted, properly parsed, and persisted.
+    """
+    api_url = reverse('dataset-upload-api')
+    uploaded_file = SimpleUploadedFile(filename, content, content_type="text/csv")
+    response = client.post(api_url, {'file': uploaded_file})
+
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    assert data['status'] == 'success'
+    assert data['dataset']['row_count'] == expected_rows
+    assert data['dataset']['column_count'] == expected_cols
+
+    dataset_id = data['dataset']['id']
+    ds = Dataset.objects.get(id=dataset_id)
+    assert ds.row_count == expected_rows
+    assert ds.column_count == expected_cols
+    assert os.path.exists(ds.file.path)
+
+    # Cleanup
+    ds.delete()
+    assert not os.path.exists(ds.file.path)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("filename,content", [
+    ("web_empty.csv", b""),
+    ("web_newlines.csv", b"\n\n\n"),
+    ("web_header_only.csv", b"col1,col2,col3\n"),
+    ("web_delimiters_only.csv", b",,\n,,\n"),
+    ("web_ragged.csv", b"col1,col2,col3\n1,2,3\n4,5,6,7,8\n"),
+    ("web_unclosed_quote.csv", b'col1,col2\n"unclosed,1\n2,3\n'),
+])
+def test_issue_13_empty_and_malformed_csv_web_upload_rejected(client, filename, content):
+    """
+    Issue #13: Verify that the Web UI upload view rejects empty, header-only, and malformed CSVs,
+    displaying flash error notices, without creating database records or saving media files.
+    """
+    initial_count = Dataset.objects.count()
+    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
+    files_before = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+
+    web_url = reverse('dataset-web-upload')
+    uploaded_file = SimpleUploadedFile(filename, content, content_type="text/csv")
+    response = client.post(web_url, {'file': uploaded_file}, follow=True)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert b"Validation error" in response.content
+
+    assert Dataset.objects.count() == initial_count
+    assert not Dataset.objects.filter(filename=filename).exists()
+
+    files_after = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+    assert files_after == files_before
+
+
+@pytest.mark.parametrize("filename,content,expected_error", EMPTY_CSV_TEST_CASES)
+def test_issue_13_validate_csv_file_direct_empty_rejected(filename, content, expected_error):
+    """
+    Issue #13: Direct validator test for empty and whitespace-only CSVs.
+    """
+    uploaded_file = SimpleUploadedFile(filename, content, content_type="text/csv")
+    with pytest.raises(ValidationError) as excinfo:
+        validate_csv_file(uploaded_file)
+    assert expected_error in str(excinfo.value)
+
+
+@pytest.mark.parametrize("filename,content", HEADER_ONLY_CSV_TEST_CASES)
+def test_issue_13_validate_csv_file_direct_header_only_rejected(filename, content):
+    """
+    Issue #13: Direct validator test for header-only CSVs without data rows.
+    """
+    uploaded_file = SimpleUploadedFile(filename, content, content_type="text/csv")
+    with pytest.raises(ValidationError) as excinfo:
+        validate_csv_file(uploaded_file)
+    assert 'Dataset must contain at least one data row.' in str(excinfo.value)
+
+
+@pytest.mark.parametrize("filename,content,expected_error_snippet", MALFORMED_CSV_TEST_CASES)
+def test_issue_13_validate_csv_file_direct_malformed_rejected(filename, content, expected_error_snippet):
+    """
+    Issue #13: Direct validator test for malformed CSVs.
+    """
+    uploaded_file = SimpleUploadedFile(filename, content, content_type="text/csv")
+    with pytest.raises(ValidationError) as excinfo:
+        validate_csv_file(uploaded_file)
+    assert expected_error_snippet in str(excinfo.value)
