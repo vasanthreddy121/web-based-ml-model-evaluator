@@ -1,6 +1,7 @@
 import os
 import io
 import pytest
+from unittest.mock import patch
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -8,7 +9,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client
 from rest_framework import status
 from datasets.models import Dataset
-from datasets.validators import sanitize_filename, validate_csv_file
+from datasets.validators import sanitize_filename, validate_csv_file, MAX_UPLOAD_SIZE
 from rest_framework.exceptions import ValidationError
 
 
@@ -597,3 +598,271 @@ def test_issue_13_validate_csv_file_direct_malformed_rejected(filename, content,
     with pytest.raises(ValidationError) as excinfo:
         validate_csv_file(uploaded_file)
     assert expected_error_snippet in str(excinfo.value)
+
+
+# =====================================================================
+# Issue #14: Tests for Dataset Upload Size-Limit Boundaries
+# =====================================================================
+
+@pytest.mark.django_db
+def test_issue_14_boundary_one_byte_below_maximum_validator():
+    """
+    Issue #14: Verify that a CSV one byte below the 10 MB limit (10,485,759 bytes)
+    is accepted by validate_csv_file and returns the exact file size.
+    """
+    content = b"col1,col2\n1,2\n3,4\n"
+    uploaded_file = SimpleUploadedFile("below_10mb.csv", content, content_type="text/csv")
+    target_size = MAX_UPLOAD_SIZE - 1
+    uploaded_file.size = target_size
+
+    df, name, size = validate_csv_file(uploaded_file)
+    assert df.shape == (2, 2)
+    assert size == target_size
+
+
+@pytest.mark.django_db
+def test_issue_14_boundary_exactly_at_maximum_allowed_size_validator():
+    """
+    Issue #14: Verify that a CSV exactly at the configured 10 MB limit (10,485,760 bytes)
+    is accepted by validate_csv_file and returns the exact file size.
+    """
+    content = b"feature1,feature2\n10,20\n30,40\n"
+    uploaded_file = SimpleUploadedFile("exact_10mb.csv", content, content_type="text/csv")
+    uploaded_file.size = MAX_UPLOAD_SIZE
+
+    df, name, size = validate_csv_file(uploaded_file)
+    assert df.shape == (2, 2)
+    assert size == MAX_UPLOAD_SIZE
+
+
+@pytest.mark.django_db
+def test_issue_14_boundary_one_byte_above_maximum_validator_rejected():
+    """
+    Issue #14: Verify that a CSV one byte above the 10 MB limit (10,485,761 bytes)
+    is rejected by validate_csv_file with clear ValidationError.
+    """
+    content = b"col1,col2\n1,2\n3,4\n"
+    uploaded_file = SimpleUploadedFile("above_10mb.csv", content, content_type="text/csv")
+    uploaded_file.size = MAX_UPLOAD_SIZE + 1
+
+    with pytest.raises(ValidationError) as excinfo:
+        validate_csv_file(uploaded_file)
+    assert 'File size exceeds maximum allowed limit of 10 MB.' in str(excinfo.value)
+
+
+@pytest.mark.django_db
+def test_issue_14_significantly_oversized_file_validator_rejected():
+    """
+    Issue #14: Verify that a significantly oversized CSV (15 MB) is rejected by validate_csv_file.
+    """
+    content = b"col1,col2\n1,2\n3,4\n"
+    uploaded_file = SimpleUploadedFile("oversized_15mb.csv", content, content_type="text/csv")
+    uploaded_file.size = 15 * 1024 * 1024
+
+    with pytest.raises(ValidationError) as excinfo:
+        validate_csv_file(uploaded_file)
+    assert 'File size exceeds maximum allowed limit of 10 MB.' in str(excinfo.value)
+
+
+@pytest.mark.django_db
+def test_issue_14_api_upload_size_limit_enforced_via_patched_limit(client):
+    """
+    Issue #14: Verify that the upload API endpoint enforces size limit and rejects
+    oversized payloads with HTTP 400 Bad Request, creating no DB record and leaving no storage file.
+    """
+    initial_count = Dataset.objects.count()
+    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
+    files_before = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+
+    api_url = reverse('dataset-upload-api')
+    test_limit = 80
+    with patch('datasets.validators.MAX_UPLOAD_SIZE', test_limit):
+        content_above = b"col1,col2\n" + b"a" * 68 + b",1\n"
+        assert len(content_above) == test_limit + 1
+        uploaded_file = SimpleUploadedFile("api_oversized.csv", content_above, content_type="text/csv")
+
+        response = client.post(api_url, {'file': uploaded_file})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        data = response.json()
+        assert data['status'] == 'error'
+        assert 'File size exceeds maximum allowed limit' in data['error']
+
+        assert Dataset.objects.count() == initial_count
+        assert not Dataset.objects.filter(filename="api_oversized.csv").exists()
+
+        files_after = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+        assert files_after == files_before
+
+
+@pytest.mark.django_db
+def test_issue_14_api_upload_size_limit_accepted_below_limit(client):
+    """
+    Issue #14: Verify that the upload API accepts files within the size limit,
+    persisting the Dataset model and file storage cleanly.
+    """
+    api_url = reverse('dataset-upload-api')
+    test_limit = 80
+    with patch('datasets.validators.MAX_UPLOAD_SIZE', test_limit):
+        content_below = b"col1,col2\n" + b"a" * 57 + b",1\n"
+        assert len(content_below) == 70
+        uploaded_file = SimpleUploadedFile("api_within_limit.csv", content_below, content_type="text/csv")
+
+        response = client.post(api_url, {'file': uploaded_file})
+
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.json()
+        assert data['status'] == 'success'
+        assert data['dataset']['file_size'] == 70
+
+        ds = Dataset.objects.get(id=data['dataset']['id'])
+        assert ds.file_size == 70
+        assert os.path.exists(ds.file.path)
+        ds.delete()
+        assert not os.path.exists(ds.file.path)
+
+
+@pytest.mark.django_db
+def test_issue_14_web_upload_size_limit_enforced_via_patched_limit(client):
+    """
+    Issue #14: Verify that Web UI upload form enforces size limit and rejects
+    oversized payloads with a flash error message, leaving no DB record or media file.
+    """
+    initial_count = Dataset.objects.count()
+    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
+    files_before = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+
+    web_url = reverse('dataset-web-upload')
+    test_limit = 80
+    with patch('datasets.validators.MAX_UPLOAD_SIZE', test_limit):
+        content_above = b"col1,col2\n" + b"a" * 68 + b",1\n"
+        assert len(content_above) == test_limit + 1
+        uploaded_file = SimpleUploadedFile("web_oversized.csv", content_above, content_type="text/csv")
+
+        response = client.post(web_url, {'file': uploaded_file}, follow=True)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert b"Validation error" in response.content
+        assert b"File size exceeds maximum allowed limit" in response.content
+
+        assert Dataset.objects.count() == initial_count
+        assert not Dataset.objects.filter(filename="web_oversized.csv").exists()
+
+        files_after = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+        assert files_after == files_before
+
+
+@pytest.mark.django_db
+def test_issue_14_validation_order_unsupported_format_oversized(client):
+    """
+    Issue #14: Verify validation ordering: an oversized file with an unsupported extension (.json)
+    is rejected for unsupported extension first, rather than size limit.
+    """
+    initial_count = Dataset.objects.count()
+    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
+    files_before = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+
+    api_url = reverse('dataset-upload-api')
+    uploaded_file = SimpleUploadedFile("oversized.json", b'{"data": 1}', content_type="application/json")
+    uploaded_file.size = 20 * 1024 * 1024  # 20 MB
+
+    response = client.post(api_url, {'file': uploaded_file})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    data = response.json()
+    assert data['status'] == 'error'
+    assert 'Unsupported file format. Only CSV files (.csv) are accepted.' in data['error']
+    assert 'File size exceeds maximum' not in data['error']
+
+    assert Dataset.objects.count() == initial_count
+    assert not Dataset.objects.filter(filename="oversized.json").exists()
+
+    files_after = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+    assert files_after == files_before
+
+
+@pytest.mark.django_db
+def test_issue_14_minimum_valid_file_size_accepted(client):
+    """
+    Issue #14: Verify that a minimal valid 1-row, 1-column CSV (very small size boundary)
+    is accepted by the API, properly persisted, and cleaned up.
+    """
+    api_url = reverse('dataset-upload-api')
+    minimal_content = b"target\n1\n"  # 9 bytes
+    uploaded_file = SimpleUploadedFile("minimal_valid.csv", minimal_content, content_type="text/csv")
+
+    response = client.post(api_url, {'file': uploaded_file})
+
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    assert data['status'] == 'success'
+    assert data['dataset']['row_count'] == 1
+    assert data['dataset']['column_count'] == 1
+    assert data['dataset']['file_size'] == len(minimal_content)
+
+    ds = Dataset.objects.get(id=data['dataset']['id'])
+    assert ds.row_count == 1
+    assert ds.column_count == 1
+    assert os.path.exists(ds.file.path)
+
+    ds.delete()
+    assert not os.path.exists(ds.file.path)
+
+
+@pytest.mark.django_db
+def test_issue_14_zero_byte_lower_boundary_rejected(client):
+    """
+    Issue #14: Verify that a 0-byte file (lower size boundary) is rejected
+    with HTTP 400 Bad Request and clean storage.
+    """
+    initial_count = Dataset.objects.count()
+    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
+    files_before = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+
+    api_url = reverse('dataset-upload-api')
+    uploaded_file = SimpleUploadedFile("zero_byte_boundary.csv", b"", content_type="text/csv")
+
+    response = client.post(api_url, {'file': uploaded_file})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    data = response.json()
+    assert data['status'] == 'error'
+    assert 'The uploaded file is empty.' in data['error']
+
+    assert Dataset.objects.count() == initial_count
+    assert not Dataset.objects.filter(filename="zero_byte_boundary.csv").exists()
+
+    files_after = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+    assert files_after == files_before
+
+
+def test_issue_14_patched_physical_byte_boundaries_direct_validator():
+    """
+    Issue #14: Direct validator test using a patched limit (80 bytes) with real byte content
+    to test physical byte boundary handling: 70 bytes (accepted), 80 bytes (accepted), 81 bytes (rejected).
+    """
+    test_limit = 80
+    with patch('datasets.validators.MAX_UPLOAD_SIZE', test_limit):
+        # 1. Below limit (70 bytes total)
+        content_below = b"col1,col2\n" + b"a" * 57 + b",1\n"
+        assert len(content_below) == 70
+        f_below = SimpleUploadedFile("below_patched.csv", content_below, content_type="text/csv")
+        df_below, name_below, size_below = validate_csv_file(f_below)
+        assert df_below.shape == (1, 2)
+        assert size_below == 70
+
+        # 2. Exactly at limit (80 bytes total)
+        content_exact = b"col1,col2\n" + b"a" * 67 + b",1\n"
+        assert len(content_exact) == 80
+        f_exact = SimpleUploadedFile("exact_patched.csv", content_exact, content_type="text/csv")
+        df_exact, name_exact, size_exact = validate_csv_file(f_exact)
+        assert df_exact.shape == (1, 2)
+        assert size_exact == 80
+
+        # 3. One byte above limit (81 bytes total)
+        content_above = b"col1,col2\n" + b"a" * 68 + b",1\n"
+        assert len(content_above) == 81
+        f_above = SimpleUploadedFile("above_patched.csv", content_above, content_type="text/csv")
+        with pytest.raises(ValidationError) as excinfo:
+            validate_csv_file(f_above)
+        assert 'File size exceeds maximum allowed limit' in str(excinfo.value)
