@@ -1,6 +1,8 @@
 import os
 import io
 import pytest
+from django.conf import settings
+from django.contrib.auth.models import User
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client
@@ -203,3 +205,169 @@ class TestDatasetUploadValidation(TestCase):
         bad_res = self.client.post(self.web_url, {'file': invalid_file}, follow=True)
         assert bad_res.status_code == status.HTTP_200_OK
         assert b"Validation error" in bad_res.content
+
+
+# =====================================================================
+# Issue #12: Tests for Unsupported Dataset File Formats
+# =====================================================================
+
+UNSUPPORTED_FILENAMES = [
+    # Non-CSV tabular and serialized data formats
+    "dataset.json",
+    "dataset.xlsx",
+    "dataset.xls",
+    "dataset.tsv",
+    "dataset.parquet",
+    # Compressed archives and documents
+    "dataset.zip",
+    "dataset.pdf",
+    # Media and image formats
+    "dataset.png",
+    "dataset.jpg",
+    # Executable, scripts, and source code formats
+    "dataset.exe",
+    "dataset.py",
+    # Edge cases: no extension, double extensions, uppercase unsupported, trailing dot
+    "dataset_without_ext",
+    "dataset.csv.txt",
+    "dataset.csv.json",
+    "dataset.JSON",
+    "dataset.XlsX",
+    "dataset.",
+]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("filename", UNSUPPORTED_FILENAMES)
+def test_unsupported_file_formats_upload_api(client, filename):
+    """
+    Issue #12: Verify that API rejects unsupported dataset formats with HTTP 400 Bad Request,
+    provides a clear error message, creates no Dataset record, and persists no media file.
+    """
+    initial_count = Dataset.objects.count()
+    api_url = reverse('dataset-upload-api')
+    uploaded_file = SimpleUploadedFile(
+        filename,
+        b"feature1,feature2\n10,20\n30,40\n",
+        content_type="application/octet-stream"
+    )
+
+    response = client.post(api_url, {'file': uploaded_file})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    data = response.json()
+    assert data['status'] == 'error'
+    assert 'Unsupported file format. Only CSV files (.csv) are accepted.' in data['error']
+
+    # 1. Verify no Dataset database record is created
+    assert Dataset.objects.count() == initial_count
+    assert not Dataset.objects.filter(filename=filename).exists()
+
+    # 2. Verify no uploaded file is left behind in media storage
+    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
+    if media_datasets_dir.exists():
+        stored_files = os.listdir(media_datasets_dir)
+        assert filename not in stored_files
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("filename", [
+    "web_data.json",
+    "web_data.xlsx",
+    "web_data.parquet",
+    "web_data.zip",
+    "web_data.exe",
+    "web_data_no_ext",
+    "web_data.csv.txt",
+    "web_data.JSON",
+])
+def test_unsupported_file_formats_web_upload(client, filename):
+    """
+    Issue #12: Verify that the Web UI upload form rejects unsupported file formats,
+    displays a validation error flash message, creates no Dataset record, and persists no file.
+    """
+    initial_count = Dataset.objects.count()
+    web_url = reverse('dataset-web-upload')
+    uploaded_file = SimpleUploadedFile(
+        filename,
+        b"col1,col2\n1,2\n3,4\n",
+        content_type="application/octet-stream"
+    )
+
+    response = client.post(web_url, {'file': uploaded_file}, follow=True)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert b"Validation error" in response.content
+    assert b"Unsupported file format. Only CSV files (.csv) are accepted." in response.content
+
+    # Verify no database persistence
+    assert Dataset.objects.count() == initial_count
+    assert not Dataset.objects.filter(filename=filename).exists()
+
+    # Verify no file in media directory
+    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
+    if media_datasets_dir.exists():
+        assert filename not in os.listdir(media_datasets_dir)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("valid_filename", ["DATASET.CSV", "sample_mixed.Csv", "DATA.Csv"])
+def test_uppercase_valid_csv_extension_accepted(client, valid_filename):
+    """
+    Issue #12: Verify uppercase and mixed-case .CSV extensions are accepted,
+    persisted to database, and stored cleanly on disk.
+    """
+    api_url = reverse('dataset-upload-api')
+    csv_bytes = b"col1,col2,target\n1,2,0\n3,4,1\n"
+    uploaded_file = SimpleUploadedFile(valid_filename, csv_bytes, content_type="text/csv")
+
+    response = client.post(api_url, {'file': uploaded_file})
+
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    assert data['status'] == 'success'
+    assert data['dataset']['filename'] == valid_filename
+
+    # Verify database persistence
+    dataset_id = data['dataset']['id']
+    ds = Dataset.objects.get(id=dataset_id)
+    assert ds.filename == valid_filename
+    assert os.path.exists(ds.file.path)
+
+    # Cleanup created file and record
+    ds.delete()
+    assert not os.path.exists(ds.file.path)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("filename", ["auth_data.json", "auth_data.xlsx", "auth_data.exe"])
+def test_authenticated_user_unsupported_format_rejected(client, filename):
+    """
+    Issue #12: Verify authenticated user upload of an unsupported format is rejected with HTTP 400
+    and does not associate any dataset with the user.
+    """
+    user = User.objects.create_user(username='format_tester', password='password123')
+    client.login(username='format_tester', password='password123')
+    api_url = reverse('dataset-upload-api')
+
+    uploaded_file = SimpleUploadedFile(filename, b"content", content_type="application/octet-stream")
+    response = client.post(api_url, {'file': uploaded_file})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    data = response.json()
+    assert data['status'] == 'error'
+    assert 'Unsupported file format. Only CSV files (.csv) are accepted.' in data['error']
+
+    assert not Dataset.objects.filter(user=user).exists()
+
+
+@pytest.mark.parametrize("filename", UNSUPPORTED_FILENAMES)
+def test_validate_csv_file_direct_unsupported_formats(filename):
+    """
+    Issue #12: Direct validator test verifying validate_csv_file raises ValidationError
+    with exact message for all unsupported filenames.
+    """
+    uploaded_file = SimpleUploadedFile(filename, b"col1,col2\n1,2\n3,4\n", content_type="application/octet-stream")
+    with pytest.raises(ValidationError) as excinfo:
+        validate_csv_file(uploaded_file)
+    assert 'Unsupported file format. Only CSV files (.csv) are accepted.' in str(excinfo.value)
