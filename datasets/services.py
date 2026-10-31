@@ -8,16 +8,22 @@ from rest_framework.exceptions import ValidationError, NotFound
 
 def clean_for_json(val):
     """Convert numpy / pandas types and NaN / Inf values into standard JSON-serializable types."""
-    if val is None or pd.isna(val):
+    if val is None:
         return None
-    if isinstance(val, (np.integer, np.int64, np.int32, np.int16, np.int8)):
+    if isinstance(val, dict):
+        return {k: clean_for_json(v) for k, v in val.items()}
+    if isinstance(val, (list, tuple)):
+        return [clean_for_json(v) for v in val]
+    if isinstance(val, (bool, np.bool_)):
+        return bool(val)
+    if isinstance(val, (int, np.integer)):
         return int(val)
+    if pd.isna(val):
+        return None
     if isinstance(val, (np.floating, np.float64, np.float32, float)):
         if math.isnan(val) or math.isinf(val):
             return None
         return round(float(val), 4)
-    if isinstance(val, (np.bool_, bool)):
-        return bool(val)
     if isinstance(val, (pd.Timestamp, np.datetime64)):
         return str(val)
     return str(val)

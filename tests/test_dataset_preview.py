@@ -220,10 +220,15 @@ class TestDatasetProfilingEdgeCases(TestCase):
         assert clean_for_json(-np.inf) is None
         assert clean_for_json(float('-inf')) is None
 
-        # Integer types
+        # Integer types (ordinary Python int and NumPy integers)
+        assert clean_for_json(42) == 42
+        assert isinstance(clean_for_json(42), int)
+        assert not isinstance(clean_for_json(42), bool)
+
         int_val = clean_for_json(np.int64(42))
         assert int_val == 42
         assert isinstance(int_val, int)
+        assert not isinstance(int_val, bool)
 
         # Floating types rounded to 4 decimals
         float_val = clean_for_json(np.float64(3.14159265))
@@ -237,6 +242,85 @@ class TestDatasetProfilingEdgeCases(TestCase):
         # Timestamp
         ts_val = clean_for_json(pd.Timestamp("2026-01-01 12:00:00"))
         assert ts_val == "2026-01-01 12:00:00"
+
+    def test_clean_for_json_integer_preservation_and_type_fidelity(self):
+        """
+        Regression Test: Verify clean_for_json preserves integer types without
+        converting them to strings, preserves booleans without coercion to ints,
+        and cleanly handles nested dictionaries and lists.
+        """
+        # 1. clean_for_json(42) returns integer 42
+        res_42 = clean_for_json(42)
+        assert res_42 == 42
+        assert isinstance(res_42, int)
+        assert not isinstance(res_42, bool)
+
+        # 2. clean_for_json(-10) returns integer -10
+        res_neg = clean_for_json(-10)
+        assert res_neg == -10
+        assert isinstance(res_neg, int)
+        assert not isinstance(res_neg, bool)
+
+        # 3. clean_for_json(np.int64(42)) returns integer 42
+        res_np_int = clean_for_json(np.int64(42))
+        assert res_np_int == 42
+        assert isinstance(res_np_int, int)
+        assert not isinstance(res_np_int, bool)
+
+        # 4. clean_for_json(95.5) remains a float
+        res_float = clean_for_json(95.5)
+        assert res_float == 95.5
+        assert isinstance(res_float, float)
+
+        # 5. clean_for_json(True) remains Boolean True
+        res_true = clean_for_json(True)
+        assert res_true is True
+        assert isinstance(res_true, bool)
+
+        # 6. clean_for_json(False) remains Boolean False
+        res_false = clean_for_json(False)
+        assert res_false is False
+        assert isinstance(res_false, bool)
+
+        # 7. clean_for_json(None) remains None
+        assert clean_for_json(None) is None
+
+        # 8. Nested dictionaries and lists preserve integer values
+        nested_input = {
+            "id": 42,
+            "scores": [10, -5, 100],
+            "meta": {
+                "active": True,
+                "verified": False,
+                "count": 99,
+                "ratio": 0.85
+            }
+        }
+        nested_output = clean_for_json(nested_input)
+        assert nested_output["id"] == 42
+        assert isinstance(nested_output["id"], int)
+        assert not isinstance(nested_output["id"], bool)
+
+        assert nested_output["scores"] == [10, -5, 100]
+        assert all(isinstance(x, int) and not isinstance(x, bool) for x in nested_output["scores"])
+
+        assert nested_output["meta"]["active"] is True
+        assert isinstance(nested_output["meta"]["active"], bool)
+
+        assert nested_output["meta"]["verified"] is False
+        assert isinstance(nested_output["meta"]["verified"], bool)
+
+        assert nested_output["meta"]["count"] == 99
+        assert isinstance(nested_output["meta"]["count"], int)
+        assert not isinstance(nested_output["meta"]["count"], bool)
+
+        assert nested_output["meta"]["ratio"] == 0.85
+        assert isinstance(nested_output["meta"]["ratio"], float)
+
+        # 10. The resulting preview / structure can be serialized with json.dumps()
+        dumped = json.dumps(nested_output)
+        loaded = json.loads(dumped)
+        assert loaded == nested_input
 
     # -------------------------------------------------------------------------
     # 2. Minimal Datasets (1-row, 1-col, 1-cell)
@@ -366,8 +450,12 @@ class TestDatasetProfilingEdgeCases(TestCase):
         assert id_stats['std'] is None
 
         assert len(profiling['preview']) == 1
-        assert profiling['preview'][0] == {'id': '42'}
-        assert profiling['preview_table_rows'] == [['42']]
+        assert profiling['preview'][0] == {'id': 42}
+        assert isinstance(profiling['preview'][0]['id'], int)
+        assert not isinstance(profiling['preview'][0]['id'], bool)
+        assert profiling['preview_table_rows'] == [[42]]
+        assert isinstance(profiling['preview_table_rows'][0][0], int)
+        assert not isinstance(profiling['preview_table_rows'][0][0], bool)
 
     # -------------------------------------------------------------------------
     # 3. Missing Values Edge Cases
@@ -702,8 +790,11 @@ class TestDatasetProfilingEdgeCases(TestCase):
         assert profiling['row_count'] == 25
         assert len(profiling['preview']) == 10
         assert len(profiling['preview_table_rows']) == 10
-        assert profiling['preview'][0] == {'id': '0', 'val': '0'}
-        assert profiling['preview'][9] == {'id': '9', 'val': '90'}
+        assert profiling['preview'][0] == {'id': 0, 'val': 0}
+        assert isinstance(profiling['preview'][0]['id'], int)
+        assert not isinstance(profiling['preview'][0]['id'], bool)
+        assert profiling['preview'][9] == {'id': 9, 'val': 90}
+        assert isinstance(profiling['preview'][9]['val'], int)
 
     def test_preview_truncation_custom_limit(self):
         """
@@ -717,7 +808,9 @@ class TestDatasetProfilingEdgeCases(TestCase):
         assert profiling['row_count'] == 25
         assert len(profiling['preview']) == 5
         assert len(profiling['preview_table_rows']) == 5
-        assert profiling['preview'][4] == {'id': '4', 'val': '40'}
+        assert profiling['preview'][4] == {'id': 4, 'val': 40}
+        assert isinstance(profiling['preview'][4]['id'], int)
+        assert isinstance(profiling['preview'][4]['val'], int)
 
     def test_preview_truncation_smaller_than_limit(self):
         """
@@ -821,4 +914,74 @@ class TestDatasetProfilingEdgeCases(TestCase):
         assert b"web_missing.csv" in response.content
         assert b"Alice" in response.content
         assert b"Charlie" in response.content
+
+    def test_profile_dataset_preview_integer_columns_numeric_types(self):
+        """
+        Regression Test: Verify that dataset profiling preserves integer types as
+        numeric values (not strings) in preview records and table rows, and that
+        the entire profiling dictionary serializes cleanly with json.dumps().
+        """
+        csv_path = self._create_temp_csv(
+            "id,score,count,active\n"
+            "1,95,100,True\n"
+            "2,88,200,False\n"
+        )
+        profiling = profile_dataset(csv_path)
+
+        # 9. A dataset preview containing integer columns returns numeric JSON values, not strings
+        first_row = profiling['preview'][0]
+        assert first_row['id'] == 1
+        assert isinstance(first_row['id'], int)
+        assert not isinstance(first_row['id'], bool)
+        assert not isinstance(first_row['id'], str)
+
+        assert first_row['score'] == 95
+        assert isinstance(first_row['score'], int)
+        assert not isinstance(first_row['score'], bool)
+
+        assert first_row['count'] == 100
+        assert isinstance(first_row['count'], int)
+        assert not isinstance(first_row['count'], bool)
+
+        assert first_row['active'] is True
+        assert isinstance(first_row['active'], bool)
+
+        # Table rows verification
+        assert profiling['preview_table_rows'][0] == [1, 95, 100, True]
+        assert isinstance(profiling['preview_table_rows'][0][0], int)
+        assert not isinstance(profiling['preview_table_rows'][0][0], bool)
+
+        # 10. The resulting preview can be serialized with json.dumps()
+        dumped = json.dumps(profiling)
+        loaded = json.loads(dumped)
+        assert loaded['preview'][0]['id'] == 1
+        assert isinstance(loaded['preview'][0]['id'], int)
+
+    def test_api_preview_with_integer_columns_numeric_json_response(self):
+        """
+        Regression Test: Verify that GET dataset-preview-api returns JSON where integer
+        columns are represented as numeric JSON integers, not stringified integers.
+        """
+        csv_content = b"student_id,grade,credits\n101,95,4\n102,88,3\n"
+        ds = self._create_dataset("students.csv", csv_content)
+
+        self.client.login(username='edge_user', password='password123')
+        url = reverse('dataset-preview-api', kwargs={'pk': ds.id})
+        response = self.client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data['status'] == 'success'
+
+        first_preview = data['profiling']['preview'][0]
+        assert first_preview['student_id'] == 101
+        assert isinstance(first_preview['student_id'], int)
+        assert not isinstance(first_preview['student_id'], str)
+        assert not isinstance(first_preview['student_id'], bool)
+
+        assert first_preview['grade'] == 95
+        assert isinstance(first_preview['grade'], int)
+
+        assert first_preview['credits'] == 4
+        assert isinstance(first_preview['credits'], int)
 
