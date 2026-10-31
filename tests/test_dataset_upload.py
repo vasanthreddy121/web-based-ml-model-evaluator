@@ -245,6 +245,9 @@ def test_unsupported_file_formats_upload_api(client, filename):
     provides a clear error message, creates no Dataset record, and persists no media file.
     """
     initial_count = Dataset.objects.count()
+    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
+    files_before = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+
     api_url = reverse('dataset-upload-api')
     uploaded_file = SimpleUploadedFile(
         filename,
@@ -263,11 +266,9 @@ def test_unsupported_file_formats_upload_api(client, filename):
     assert Dataset.objects.count() == initial_count
     assert not Dataset.objects.filter(filename=filename).exists()
 
-    # 2. Verify no uploaded file is left behind in media storage
-    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
-    if media_datasets_dir.exists():
-        stored_files = os.listdir(media_datasets_dir)
-        assert filename not in stored_files
+    # 2. Verify media directory contents are completely unchanged (no files saved under any name)
+    files_after = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+    assert files_after == files_before
 
 
 @pytest.mark.django_db
@@ -287,6 +288,9 @@ def test_unsupported_file_formats_web_upload(client, filename):
     displays a validation error flash message, creates no Dataset record, and persists no file.
     """
     initial_count = Dataset.objects.count()
+    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
+    files_before = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+
     web_url = reverse('dataset-web-upload')
     uploaded_file = SimpleUploadedFile(
         filename,
@@ -304,10 +308,9 @@ def test_unsupported_file_formats_web_upload(client, filename):
     assert Dataset.objects.count() == initial_count
     assert not Dataset.objects.filter(filename=filename).exists()
 
-    # Verify no file in media directory
-    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
-    if media_datasets_dir.exists():
-        assert filename not in os.listdir(media_datasets_dir)
+    # Verify media directory contents are completely unchanged
+    files_after = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+    assert files_after == files_before
 
 
 @pytest.mark.django_db
@@ -346,6 +349,10 @@ def test_authenticated_user_unsupported_format_rejected(client, filename):
     Issue #12: Verify authenticated user upload of an unsupported format is rejected with HTTP 400
     and does not associate any dataset with the user.
     """
+    initial_count = Dataset.objects.count()
+    media_datasets_dir = settings.MEDIA_ROOT / 'datasets'
+    files_before = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+
     user = User.objects.create_user(username='format_tester', password='password123')
     client.login(username='format_tester', password='password123')
     api_url = reverse('dataset-upload-api')
@@ -358,7 +365,12 @@ def test_authenticated_user_unsupported_format_rejected(client, filename):
     assert data['status'] == 'error'
     assert 'Unsupported file format. Only CSV files (.csv) are accepted.' in data['error']
 
+    assert Dataset.objects.count() == initial_count
     assert not Dataset.objects.filter(user=user).exists()
+
+    # Verify media directory contents are completely unchanged
+    files_after = set(os.listdir(media_datasets_dir)) if media_datasets_dir.exists() else set()
+    assert files_after == files_before
 
 
 @pytest.mark.parametrize("filename", UNSUPPORTED_FILENAMES)
