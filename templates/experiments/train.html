@@ -4,20 +4,80 @@
 
 {% block extra_head %}
 <style>
-    .form-group { margin-bottom: 1.25rem; }
-    .form-label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--gray-900); }
-    .form-control { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 0.95rem; background: #ffffff; }
-    .checkbox-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.5rem; background: var(--gray-50); padding: 1rem; border-radius: 6px; border: 1px solid var(--gray-200); }
-    .checkbox-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
-    .radio-group { display: flex; gap: 1.5rem; flex-wrap: wrap; background: var(--gray-50); padding: 0.75rem 1rem; border-radius: 6px; border: 1px solid var(--gray-200); }
-    .radio-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
-    .param-box { background: var(--gray-50); padding: 1rem; border-radius: 6px; border: 1px solid var(--gray-200); margin-top: 0.5rem; }
+    .page-header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.75rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .page-header-titles h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin-bottom: 0.25rem;
+    }
+    .page-header-titles p {
+        color: var(--gray-700);
+        font-size: 0.925rem;
+    }
+    .checkbox-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 0.6rem;
+        background: var(--gray-50);
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--gray-300);
+        max-height: 220px;
+        overflow-y: auto;
+    }
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--gray-900);
+        cursor: pointer;
+    }
+    .radio-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 0.75rem;
+        background: var(--gray-50);
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--gray-300);
+    }
+    .radio-card {
+        border: 1px solid var(--gray-300);
+        border-radius: var(--radius-md);
+        background: #ffffff;
+        padding: 0.85rem;
+        cursor: pointer;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        transition: all 0.15s ease;
+    }
+    .radio-card:hover {
+        border-color: var(--primary);
+    }
+    .radio-card input {
+        margin-top: 0.25rem;
+    }
+    .hyperparam-box {
+        background: var(--gray-50);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        margin-top: 1.5rem;
+    }
 </style>
 <script>
     function updateModelOptions() {
         const problemType = document.querySelector('input[name="problem_type"]:checked').value;
-        const classGroup = document.getElementById('classification-models');
-        const regGroup = document.getElementById('regression-models');
         const modelSelect = document.getElementById('model_name');
 
         modelSelect.innerHTML = '';
@@ -57,113 +117,159 @@
 {% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <div>
-        <h1 style="font-size: 1.5rem; font-weight: 700;">3. Train Machine Learning Model</h1>
-        <p style="color: var(--gray-700); font-size: 0.9rem;">Dataset: <strong>{{ dataset.filename }}</strong> ({{ dataset.row_count }} rows, {{ dataset.column_count }} columns)</p>
+<div class="page-header-bar">
+    <div class="page-header-titles">
+        <h1>3. Train Machine Learning Model</h1>
+        <p>Dataset: <strong>{{ dataset.filename }}</strong> ({{ dataset.row_count }} rows, {{ dataset.column_count }} columns)</p>
     </div>
-    <div style="display: flex; gap: 0.5rem;">
-        <a href="{% url 'dataset-preview-web' dataset.id %}" class="btn" style="background-color: #64748b;">&larr; View Profile</a>
+    <div class="page-header-actions" style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'dataset-preview-web' dataset.id %}" class="btn btn-secondary">&larr; View Profile</a>
+        <a href="{% url 'dataset-preprocess-web' dataset.id %}" class="btn btn-outline">Preprocessing</a>
     </div>
 </div>
 
 <div class="card">
-    <h2 class="card-title">Model Selection & Hyperparameters</h2>
-    <p class="card-desc">Select workflow (Classification / Regression), choose a supported algorithm from the registry, and configure parameters.</p>
+    <div class="card-header">
+        <h2 class="card-title">Model Selection & Hyperparameters</h2>
+        <p class="card-desc">Select workflow (Classification / Regression), choose a supported algorithm from the registry, and configure parameters.</p>
+    </div>
 
     <form method="POST">
         {% csrf_token %}
         <div class="form-group">
-            <label class="form-label">Workflow / Problem Type</label>
-            <div class="radio-group">
-                <label class="radio-item">
-                    <input type="radio" name="problem_type" value="classification" checked onchange="updateModelOptions()">
-                    <strong>Classification</strong> (Accuracy, Precision, Recall, F1, Confusion Matrix, ROC-AUC)
-                </label>
-                <label class="radio-item">
-                    <input type="radio" name="problem_type" value="regression" onchange="updateModelOptions()">
-                    <strong>Regression</strong> (MAE, MSE, RMSE, R²)
-                </label>
-            </div>
+            <fieldset style="border: none; padding: 0; margin: 0;">
+                <legend class="form-label">
+                    Workflow / Problem Type <span class="field-required">*</span>
+                </legend>
+                <p class="form-text" style="margin-bottom: 0.6rem;">Choose whether you are predicting categorical classes or continuous numbers.</p>
+                <div class="radio-group">
+                    <label class="radio-card">
+                        <input type="radio" name="problem_type" value="classification" checked onchange="updateModelOptions()">
+                        <div>
+                            <strong style="color: var(--primary);">Classification</strong>
+                            <p style="font-size: 0.825rem; color: var(--gray-600); margin-top: 0.2rem;">
+                                Discrete class targets. Evaluates Accuracy, Precision, Recall, F1 Score, Confusion Matrix, and ROC-AUC.
+                            </p>
+                        </div>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="problem_type" value="regression" onchange="updateModelOptions()">
+                        <div>
+                            <strong style="color: var(--success);">Regression</strong>
+                            <p style="font-size: 0.825rem; color: var(--gray-600); margin-top: 0.2rem;">
+                                Continuous numerical targets. Evaluates Mean Absolute Error (MAE), MSE, RMSE, and R² Score.
+                            </p>
+                        </div>
+                    </label>
+                </div>
+            </fieldset>
         </div>
 
         <div class="form-group">
-            <label class="form-label" for="model_name">Algorithm</label>
-            <select name="model_name" id="model_name" class="form-control" required></select>
+            <label class="form-label" for="model_name">
+                Algorithm <span class="field-required">*</span>
+            </label>
+            <select name="model_name" id="model_name" class="form-control" aria-describedby="model-help" required></select>
+            <p class="form-text" id="model-help">Supported machine learning models automatically filtered by the chosen problem type.</p>
         </div>
 
         <div class="form-group">
-            <label class="form-label" for="target_column">Target Column (y) <span style="color: var(--danger);">*</span></label>
-            <select name="target_column" id="target_column" class="form-control" required>
+            <label class="form-label" for="target_column">
+                Target Column (y) <span class="field-required">*</span>
+            </label>
+            <select name="target_column" id="target_column" class="form-control" aria-describedby="target-help" required>
                 {% for col in columns %}
                     <option value="{{ col }}" {% if forloop.last %}selected{% endif %}>{{ col }}</option>
                 {% endfor %}
             </select>
+            <p class="form-text" id="target-help">The dependent column that the model is trained to predict.</p>
         </div>
 
         <div class="form-group">
-            <label class="form-label">Input Features (X)</label>
-            <div class="checkbox-group">
-                {% for col in columns %}
-                    <label class="checkbox-item">
-                        <input type="checkbox" name="feature_columns" value="{{ col }}" {% if not forloop.last %}checked{% endif %}>
-                        {{ col }}
+            <fieldset style="border: none; padding: 0; margin: 0;">
+                <legend class="form-label">
+                    Input Features (X) <span class="field-required">*</span>
+                </legend>
+                <p class="form-text" style="margin-bottom: 0.5rem;" id="features-help">Independent features included in the model training matrix.</p>
+                <div class="checkbox-group" aria-describedby="features-help">
+                    {% for col in columns %}
+                        <label class="checkbox-item" for="feat_train_{{ forloop.counter }}">
+                            <input type="checkbox" name="feature_columns" id="feat_train_{{ forloop.counter }}" value="{{ col }}" {% if not forloop.last %}checked{% endif %}>
+                            <span>{{ col }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+        </div>
+
+        <div class="hyperparam-box">
+            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--gray-900); margin-bottom: 0.35rem;">
+                Model Hyperparameters (Optional Overrides)
+            </h3>
+            <p class="form-text" style="margin-bottom: 1rem;">Customize key algorithm hyperparameters or leave blank to use optimized defaults.</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="max_depth" style="font-size: 0.85rem;">
+                        Max Depth <span class="field-optional">(Decision Trees / Random Forest)</span>
                     </label>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="card" style="margin-top: 1.5rem; background: var(--gray-50);">
-            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem;">Model Hyperparameters (Optional Overrides)</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                <div>
-                    <label class="form-label" for="max_depth" style="font-size: 0.85rem;">Max Depth (Trees / Forests)</label>
-                    <input type="number" name="max_depth" id="max_depth" class="form-control" placeholder="None (unlimited)">
+                    <input type="number" name="max_depth" id="max_depth" class="form-control" placeholder="None (unlimited)" aria-describedby="depth-help">
+                    <small class="form-hint" id="depth-help">Maximum tree depth to prevent overfitting.</small>
                 </div>
-                <div>
-                    <label class="form-label" for="n_estimators" style="font-size: 0.85rem;">Number of Estimators (Ensembles)</label>
-                    <input type="number" name="n_estimators" id="n_estimators" class="form-control" placeholder="100">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="n_estimators" style="font-size: 0.85rem;">
+                        Number of Estimators <span class="field-optional">(Ensembles)</span>
+                    </label>
+                    <input type="number" name="n_estimators" id="n_estimators" class="form-control" placeholder="100" aria-describedby="est-help">
+                    <small class="form-hint" id="est-help">Number of trees in forest or boosting ensemble (default: 100).</small>
                 </div>
-                <div>
-                    <label class="form-label" for="n_neighbors" style="font-size: 0.85rem;">Neighbors (KNN)</label>
-                    <input type="number" name="n_neighbors" id="n_neighbors" class="form-control" placeholder="5">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="n_neighbors" style="font-size: 0.85rem;">
+                        Neighbors <span class="field-optional">(KNN)</span>
+                    </label>
+                    <input type="number" name="n_neighbors" id="n_neighbors" class="form-control" placeholder="5" aria-describedby="knn-help">
+                    <small class="form-hint" id="knn-help">Number of nearest neighbors to query (default: 5).</small>
                 </div>
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem;">
-            <div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+            <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="scaling">Feature Scaling</label>
-                <select name="scaling" id="scaling" class="form-control">
+                <select name="scaling" id="scaling" class="form-control" aria-describedby="scaling-hint">
                     <option value="standard" selected>StandardScaler (Z-Score)</option>
                     <option value="minmax">MinMaxScaler [0, 1]</option>
                     <option value="none">None</option>
                 </select>
+                <small class="form-hint" id="scaling-hint">Normalizes numeric features.</small>
             </div>
-            <div>
+            <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="encoding">Categorical Encoding</label>
-                <select name="encoding" id="encoding" class="form-control">
+                <select name="encoding" id="encoding" class="form-control" aria-describedby="encoding-hint">
                     <option value="one_hot" selected>One-Hot Encoding</option>
                     <option value="label">Label Encoding</option>
                     <option value="none">None</option>
                 </select>
+                <small class="form-hint" id="encoding-hint">Converts strings to numbers.</small>
             </div>
-            <div>
+            <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="missing_strategy">Missing Values</label>
-                <select name="missing_strategy" id="missing_strategy" class="form-control">
+                <select name="missing_strategy" id="missing_strategy" class="form-control" aria-describedby="missing-hint">
                     <option value="mean" selected>Mean / Mode</option>
                     <option value="median">Median</option>
                     <option value="drop">Drop Rows</option>
                 </select>
+                <small class="form-hint" id="missing-hint">Imputation strategy.</small>
             </div>
-            <div>
+            <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="test_size">Test Split Ratio</label>
-                <input type="number" step="0.05" min="0.05" max="0.5" name="test_size" id="test_size" value="0.2" class="form-control">
+                <input type="number" step="0.05" min="0.05" max="0.5" name="test_size" id="test_size" value="0.2" class="form-control" aria-describedby="split-hint">
+                <small class="form-hint" id="split-hint">Fraction held out for evaluation (0.20 = 20%).</small>
             </div>
         </div>
 
-        <button type="submit" class="btn" style="margin-top: 1.5rem; font-size: 1.05rem; padding: 0.75rem 1.75rem;">⚡ Fit Model & Evaluate</button>
+        <button type="submit" class="btn btn-primary" style="margin-top: 1.75rem; font-size: 1.05rem; padding: 0.75rem 2rem;">
+            <span aria-hidden="true">⚡</span> Fit Model & Evaluate
+        </button>
     </form>
 </div>
 {% endblock %}
-

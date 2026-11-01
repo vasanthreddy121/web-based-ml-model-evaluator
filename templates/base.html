@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,13 +9,37 @@
         :root {
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --primary-border: #bfdbfe;
             --success: #16a34a;
+            --success-hover: #15803d;
+            --success-light: #dcfce7;
+            --success-border: #bbf7d0;
             --danger: #dc2626;
+            --danger-hover: #b91c1c;
+            --danger-light: #fee2e2;
+            --danger-border: #fecaca;
+            --warning: #d97706;
+            --warning-light: #fef3c7;
+            --warning-border: #fde68a;
+            --purple: #7c3aed;
+            --purple-hover: #6d28d9;
+            --purple-light: #f5f3ff;
             --gray-50: #f8fafc;
             --gray-100: #f1f5f9;
             --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-600: #475569;
             --gray-700: #334155;
+            --gray-800: #1e293b;
             --gray-900: #0f172a;
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 10px;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
         }
 
         * {
@@ -48,12 +71,14 @@
             top: -100px;
             left: 1rem;
             z-index: 1000;
-            padding: 0.75rem 1rem;
+            padding: 0.75rem 1.25rem;
             background: var(--primary);
             color: #ffffff;
             text-decoration: none;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             font-weight: 600;
+            box-shadow: var(--shadow-md);
+            transition: top 0.2s ease-in-out;
         }
 
         .skip-link:focus {
@@ -72,15 +97,20 @@
             border: 0;
         }
 
+        /* Header & Navigation (Issue #9) */
         header {
             background-color: #ffffff;
             border-bottom: 1px solid var(--gray-200);
-            padding: 1rem 2rem;
+            padding: 0.875rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
         }
 
         .logo {
@@ -88,72 +118,462 @@
             font-weight: 700;
             color: var(--primary);
             text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            letter-spacing: -0.01em;
+            transition: color 0.15s ease;
+        }
+
+        .logo:hover {
+            color: var(--primary-hover);
+        }
+
+        .logo-icon {
+            font-size: 1.35rem;
         }
 
         .nav-links {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.5rem;
             flex-wrap: wrap;
         }
 
-        .nav-links a {
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
             color: var(--gray-700);
             text-decoration: none;
             font-weight: 500;
+            font-size: 0.925rem;
+            padding: 0.45rem 0.85rem;
+            border-radius: var(--radius-md);
+            transition: all 0.15s ease;
         }
 
-        .nav-links a:hover {
+        .nav-link:hover {
             color: var(--primary);
+            background-color: var(--gray-100);
         }
 
+        /* Active Navigation Highlighting */
+        .nav-link.active {
+            color: var(--primary);
+            background-color: var(--primary-light);
+            font-weight: 600;
+            box-shadow: inset 0 -2px 0 var(--primary);
+        }
+
+        .nav-link-external {
+            color: var(--gray-600);
+        }
+
+        .external-icon {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .nav-user-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.875rem;
+            color: var(--gray-700);
+            background-color: var(--gray-100);
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .btn-nav-signout {
+            color: var(--danger);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.875rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--danger-border);
+            background-color: #ffffff;
+            transition: all 0.15s ease;
+        }
+
+        .btn-nav-signout:hover {
+            background-color: var(--danger-light);
+            color: var(--danger-hover);
+        }
+
+        /* Main Container */
         main {
             flex: 1;
-            padding: 2rem;
-            max-width: 1000px;
+            padding: 2rem 1.5rem;
+            max-width: 1100px;
             margin: 0 auto;
             width: 100%;
         }
 
+        /* Flash Messages */
         .alert {
             padding: 0.875rem 1.25rem;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             margin-bottom: 1.5rem;
             font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow-sm);
         }
 
         .alert-success {
-            background-color: #dcfce7;
+            background-color: var(--success-light);
             color: #15803d;
-            border: 1px solid #bbf7d0;
+            border: 1px solid var(--success-border);
         }
 
         .alert-error {
-            background-color: #fee2e2;
+            background-color: var(--danger-light);
             color: #b91c1c;
-            border: 1px solid #fecaca;
+            border: 1px solid var(--danger-border);
         }
 
-        footer {
-            background-color: #ffffff;
-            border-top: 1px solid var(--gray-200);
-            padding: 1rem 2rem;
-            text-align: center;
-            font-size: 0.875rem;
+        /* Shared Card Design (Issue #7) */
+        .card {
+            background: #ffffff;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            padding: 1.75rem;
+            margin-bottom: 1.75rem;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            margin-bottom: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.35rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            letter-spacing: -0.01em;
+        }
+
+        .card-desc {
+            color: var(--gray-700);
+            font-size: 0.925rem;
+            line-height: 1.5;
+        }
+
+        /* Shared Button Styles */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            background-color: var(--primary);
+            color: #ffffff;
+            padding: 0.625rem 1.25rem;
+            border-radius: var(--radius-md);
+            border: 1px solid transparent;
+            font-weight: 600;
+            font-size: 0.925rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            line-height: 1.25;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+            color: #ffffff;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: #ffffff;
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--gray-600);
+            color: #ffffff;
+        }
+        .btn-secondary:hover {
+            background-color: var(--gray-700);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: #ffffff;
+        }
+        .btn-success:hover {
+            background-color: var(--success-hover);
+        }
+
+        .btn-purple {
+            background-color: var(--purple);
+            color: #ffffff;
+        }
+        .btn-purple:hover {
+            background-color: var(--purple-hover);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--gray-700);
+            border-color: var(--gray-300);
+        }
+        .btn-outline:hover {
+            background-color: var(--gray-100);
+            color: var(--gray-900);
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        /* Badge Styles */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.2rem 0.55rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            background-color: #dbeafe;
+            color: #1e40af;
+            letter-spacing: 0.02em;
+        }
+
+        .badge-success {
+            background-color: var(--success-light);
+            color: #15803d;
+        }
+
+        .badge-danger {
+            background-color: var(--danger-light);
+            color: #b91c1c;
+        }
+
+        .badge-warning {
+            background-color: var(--warning-light);
+            color: #92400e;
+        }
+
+        .badge-neutral {
+            background-color: var(--gray-100);
             color: var(--gray-700);
         }
 
-        @media (max-width: 600px) {
+        /* Accessible Form Elements (Issue #10) */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.925rem;
+            color: var(--gray-900);
+            margin-bottom: 0.4rem;
+        }
+
+        .field-required {
+            color: var(--danger);
+            font-weight: 700;
+            margin-left: 0.2rem;
+        }
+
+        .field-optional {
+            font-weight: normal;
+            font-size: 0.825rem;
+            color: var(--gray-600);
+            margin-left: 0.35rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            color: var(--gray-900);
+            background: #ffffff;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+            outline: none;
+        }
+
+        .form-text {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--gray-600);
+            margin-top: 0.35rem;
+            line-height: 1.4;
+        }
+
+        .form-hint {
+            font-size: 0.825rem;
+            color: var(--gray-600);
+            margin-top: 0.25rem;
+        }
+
+        /* Responsive Table Container (Issue #7) */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            background: #ffffff;
+            margin-top: 1rem;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--gray-200);
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: var(--gray-50);
+            font-weight: 600;
+            color: var(--gray-700);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+
+        tbody tr:hover {
+            background-color: #fafbfc;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Empty State Component (Issue #8) */
+        .empty-state {
+            padding: 3rem 1.5rem;
+            text-align: center;
+            background-color: var(--gray-50);
+            border: 2px dashed var(--gray-200);
+            border-radius: var(--radius-lg);
+            margin: 1rem 0;
+            transition: border-color 0.2s ease;
+        }
+
+        .empty-state-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background-color: var(--primary-light);
+            color: var(--primary);
+            font-size: 1.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .empty-state-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state-desc {
+            color: var(--gray-600);
+            font-size: 0.95rem;
+            max-width: 520px;
+            margin: 0 auto 1.5rem auto;
+            line-height: 1.5;
+        }
+
+        .empty-state-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Footer */
+        footer {
+            background-color: #ffffff;
+            border-top: 1px solid var(--gray-200);
+            padding: 1.25rem 2rem;
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            margin-top: auto;
+        }
+
+        /* Responsive Breakpoints (Issue #7 & #9) */
+        @media (max-width: 768px) {
             header {
-                padding: 1rem;
+                padding: 0.875rem 1rem;
             }
 
             .nav-links {
-                gap: 0.75rem;
+                gap: 0.35rem;
+                width: 100%;
+                justify-content: flex-start;
+                padding-top: 0.25rem;
             }
 
             main {
-                padding: 1rem;
+                padding: 1.25rem 1rem;
+            }
+
+            .card {
+                padding: 1.25rem;
+                margin-bottom: 1.25rem;
+            }
+
+            .empty-state {
+                padding: 2rem 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 1.15rem;
+            }
+
+            .nav-link {
+                padding: 0.4rem 0.65rem;
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: 0.65rem 0.75rem;
             }
         }
     </style>
@@ -168,32 +588,44 @@
     </a>
 
     <header>
-        <a href="/" class="logo"><span aria-hidden="true">⚡</span> ML Model Evaluator</a>
+        <a href="/" class="logo" aria-label="Web-Based ML Model Evaluator Home">
+            <span class="logo-icon" aria-hidden="true">⚡</span>
+            <span>ML Model Evaluator</span>
+        </a>
 
         <nav class="nav-links" aria-label="Main navigation">
-            <a href="/">Datasets</a>
-            <a href="{% url 'experiment-history-web' %}">Experiments</a>
-            <a href="/api/datasets/upload/" target="_blank" rel="noopener noreferrer">
-                API Docs
+            <a href="/"
+               class="nav-link {% if request.resolver_match.url_name in 'dataset-home dataset-web-upload dataset-preview-web dataset-preprocess-web' or request.path == '/' or '/datasets/' in request.path or '/upload/' in request.path %}active{% endif %}"
+               {% if request.resolver_match.url_name in 'dataset-home dataset-web-upload dataset-preview-web dataset-preprocess-web' or request.path == '/' or '/datasets/' in request.path or '/upload/' in request.path %}aria-current="page"{% endif %}>
+                Datasets
+            </a>
+            <a href="{% url 'experiment-history-web' %}"
+               class="nav-link {% if request.resolver_match.url_name in 'experiment-history-web experiment-train-web experiment-results-web experiment-compare-web' or '/experiments/' in request.path %}active{% endif %}"
+               {% if request.resolver_match.url_name in 'experiment-history-web experiment-train-web experiment-results-web experiment-compare-web' or '/experiments/' in request.path %}aria-current="page"{% endif %}>
+                Experiments
+            </a>
+            <a href="/api/datasets/upload/" target="_blank" rel="noopener noreferrer" class="nav-link nav-link-external">
+                API Docs <span class="external-icon" aria-hidden="true">↗</span>
             </a>
 
             {% if request.user.is_authenticated %}
-                <span style="font-size: 0.85rem; color: var(--gray-700);">
+                <span class="nav-user-chip">
                     <span aria-hidden="true">👤</span> <strong>{{ request.user.username }}</strong>
                 </span>
 
-                <a href="{% url 'logout-web' %}"
-                   style="color: #dc2626; font-size: 0.85rem;">
+                <a href="{% url 'logout-web' %}" class="btn-nav-signout">
                     Sign Out
                 </a>
             {% else %}
-                <a href="{% url 'login-web' %}" style="font-size: 0.9rem;">
+                <a href="{% url 'login-web' %}"
+                   class="nav-link {% if request.resolver_match.url_name == 'login-web' %}active{% endif %}"
+                   {% if request.resolver_match.url_name == 'login-web' %}aria-current="page"{% endif %}>
                     Sign In
                 </a>
 
                 <a href="{% url 'register-web' %}"
-                   class="btn"
-                   style="padding: 0.35rem 0.75rem; margin: 0; font-size: 0.85rem;">
+                   class="btn btn-sm btn-primary {% if request.resolver_match.url_name == 'register-web' %}active{% endif %}"
+                   {% if request.resolver_match.url_name == 'register-web' %}aria-current="page"{% endif %}>
                     Register
                 </a>
             {% endif %}
@@ -224,7 +656,7 @@
     </main>
 
     <footer>
-        <p>Software Engineering Mini-Project — Team 16 (Web-Based ML Model Evaluator)</p>
+        <p>Software Engineering Mini-Project &mdash; Team 16 (Web-Based ML Model Evaluator)</p>
     </footer>
 
 </body>

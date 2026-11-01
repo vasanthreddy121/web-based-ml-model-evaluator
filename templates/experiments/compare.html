@@ -7,22 +7,23 @@
     .winner-card {
         background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
         border: 2px solid #3b82f6;
-        border-radius: 8px;
-        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        padding: 1.75rem;
         margin-bottom: 2rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
         flex-wrap: wrap;
         gap: 1rem;
+        box-shadow: var(--shadow-sm);
     }
     .winner-badge {
         display: inline-block;
-        background: #2563eb;
+        background: var(--primary);
         color: #ffffff;
         font-weight: 700;
-        font-size: 0.85rem;
-        padding: 0.25rem 0.75rem;
+        font-size: 0.8rem;
+        padding: 0.3rem 0.85rem;
         border-radius: 9999px;
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -41,42 +42,25 @@
     .comp-table th {
         background: var(--gray-100);
         font-weight: 600;
-    }
-    .bar-row {
-        margin-bottom: 1rem;
-    }
-    .bar-label {
+        color: var(--gray-700);
         font-size: 0.85rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-        display: flex;
-        justify-content: space-between;
-    }
-    .bar-track {
-        height: 20px;
-        background-color: var(--gray-200);
-        border-radius: 4px;
-        overflow: hidden;
-    }
-    .bar-fill {
-        height: 100%;
-        background-color: var(--primary);
-        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;">
     <div>
-        <h1 style="font-size: 1.5rem; font-weight: 700;">Multi-Model Experiment Comparison</h1>
-        <p style="color: var(--gray-700); font-size: 0.9rem;">
+        <h1 style="font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em;">Multi-Model Experiment Comparison</h1>
+        <p style="color: var(--gray-700); font-size: 0.925rem;">
             Comparing {{ comparison.count }} experiments &bull;
             Workflow: <strong style="text-transform: capitalize;">{{ comparison.problem_type }}</strong>
         </p>
     </div>
     <div>
-        <a href="{% url 'experiment-history-web' %}" class="btn" style="background-color: #64748b;">&larr; Back to History</a>
+        <a href="{% url 'experiment-history-web' %}" class="btn btn-secondary">&larr; Back to History</a>
     </div>
 </div>
 
@@ -84,39 +68,41 @@
 <div class="winner-card">
     <div>
         <span class="winner-badge">⭐ Recommended Top Performer</span>
-        <h2 style="font-size: 1.5rem; font-weight: 700; color: #1e3a8a;">{{ comparison.best_model_name }}</h2>
-        <p style="color: #1e40af; font-size: 0.9rem;">Achieved the best score among evaluated experiments in this comparison cohort.</p>
+        <h2 style="font-size: 1.5rem; font-weight: 700; color: #1e3a8a; margin-top: 0.25rem;">{{ comparison.best_model_name }}</h2>
+        <p style="color: #1e40af; font-size: 0.925rem; margin-top: 0.25rem;">Achieved the best score among evaluated experiments in this comparison cohort.</p>
     </div>
     <div>
-        <a href="{% url 'experiment-results-web' comparison.best_experiment_id %}" class="btn" style="background-color: #2563eb;">Inspect Top Model &rarr;</a>
+        <a href="{% url 'experiment-results-web' comparison.best_experiment_id %}" class="btn btn-primary">Inspect Top Model &rarr;</a>
     </div>
 </div>
 {% endif %}
 
 <div class="card">
-    <h2 class="card-title">Comparative Metrics Table</h2>
-    <p class="card-desc">Direct head-to-head performance comparison across all evaluated algorithms.</p>
-    <div style="overflow-x: auto;">
+    <div class="card-header">
+        <h2 class="card-title">Comparative Metrics Table</h2>
+        <p class="card-desc">Direct head-to-head performance comparison across all evaluated algorithms.</p>
+    </div>
+    <div class="table-container" role="region" aria-label="Comparative metrics" tabindex="0">
         <table class="comp-table">
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Model Name</th>
+                    <th scope="col">ID</th>
+                    <th scope="col">Model Name</th>
                     {% if comparison.problem_type == 'classification' %}
-                        <th>Accuracy</th>
-                        <th>Precision</th>
-                        <th>Recall</th>
-                        <th>F1 Score</th>
-                        <th>ROC-AUC</th>
+                        <th scope="col">Accuracy</th>
+                        <th scope="col">Precision</th>
+                        <th scope="col">Recall</th>
+                        <th scope="col">F1 Score</th>
+                        <th scope="col">ROC-AUC</th>
                     {% else %}
-                        <th>MAE</th>
-                        <th>MSE</th>
-                        <th>RMSE</th>
-                        <th>R² Score</th>
+                        <th scope="col">MAE</th>
+                        <th scope="col">MSE</th>
+                        <th scope="col">RMSE</th>
+                        <th scope="col">R² Score</th>
                     {% endif %}
-                    <th>Runtime</th>
-                    <th>Date</th>
-                    <th>Action</th>
+                    <th scope="col">Runtime</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -142,9 +128,19 @@
                         <td>{{ row.metrics.r2_score|default:"-" }}</td>
                     {% endif %}
                     <td>{{ row.training_time_seconds }}s</td>
-                    <td style="color: #64748b;">{{ row.created_at }}</td>
+                    <td style="color: var(--gray-600); font-size: 0.85rem;">{{ row.created_at }}</td>
                     <td>
-                        <a href="{% url 'experiment-results-web' row.id %}" class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.8rem; margin: 0;">Inspect</a>
+                        <a href="{% url 'experiment-results-web' row.id %}" class="btn btn-sm btn-primary" style="margin: 0; padding: 0.25rem 0.65rem; font-size: 0.8rem;">Inspect</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{% if comparison.problem_type == 'classification' %}9{% else %}8{% endif %}" style="text-align: center; padding: 2.5rem 1rem;">
+                        <div class="empty-state" style="margin: 0; border: none; background: transparent; padding: 1rem;">
+                            <p class="empty-state-title" style="font-size: 1.1rem;">No comparison data available</p>
+                            <p class="empty-state-desc">Select at least two experiments from history to compare performance metrics.</p>
+                            <a href="{% url 'experiment-history-web' %}" class="btn btn-secondary btn-sm">&larr; Return to History</a>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -153,4 +149,3 @@
     </div>
 </div>
 {% endblock %}
-
