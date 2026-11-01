@@ -393,6 +393,13 @@ class TestModelTrainingAndEvaluation(TestCase):
         assert b"<div class=\"metric-val\">0.0</div>" in response.content
         for value in (b">0.8</div>", b">0.75</div>", b">0.77</div>"):
             assert value in response.content
+        for regression_explanation in (
+            "Average absolute prediction error; lower is better.",
+            "Average squared prediction error; larger errors receive more weight; lower is better.",
+            "Square root of MSE, expressed in the target's units; lower is better.",
+            "Proportion of target variance explained by the model; higher is generally better, but negative values are possible.",
+        ):
+            assert regression_explanation.encode() not in response.content
 
     def test_confusion_matrix_labels_and_counts_render_in_aligned_axes(self):
         experiment = Experiment.objects.create(
@@ -443,9 +450,38 @@ class TestModelTrainingAndEvaluation(TestCase):
         response = self.client.get(reverse('experiment-results-web', kwargs={'pk': experiment.id}))
 
         assert response.status_code == status.HTTP_200_OK
+        for explanation in (
+            "Average absolute prediction error; lower is better.",
+            "Average squared prediction error; larger errors receive more weight; lower is better.",
+            "Square root of MSE, expressed in the target's units; lower is better.",
+            "Proportion of target variance explained by the model; higher is generally better, but negative values are possible.",
+        ):
+            assert explanation.encode() in response.content
         for value in (b">1.25</div>", b">2.5</div>", b">1.58</div>", b">0.91</div>"):
             assert value in response.content
         assert b"Share of predictions that were correct." not in response.content
+
+    def test_regression_results_render_negative_r2_score(self):
+        experiment = Experiment.objects.create(
+            user=self.user,
+            dataset=self.reg_dataset,
+            name="Regression Negative R2",
+            problem_type="regression",
+            model_name="linear_regression",
+            model_display_name="Linear Regression",
+            metrics={'mae': 3.14, 'mse': 15.9, 'rmse': 3.99, 'r2_score': -0.45},
+        )
+        self.client.login(username='ml_engineer', password='password123')
+
+        response = self.client.get(reverse('experiment-results-web', kwargs={'pk': experiment.id}))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert b">-0.45</div>" in response.content
+        assert (
+            b"Proportion of target variance explained by the model; "
+            b"higher is generally better, but negative values are possible."
+            in response.content
+        )
 
     def test_classification_prediction_table_preserves_twenty_values_and_scrolls(self):
         predictions = [
