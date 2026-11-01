@@ -16,6 +16,7 @@ from sklearn.metrics import (
     confusion_matrix, roc_auc_score,
     mean_absolute_error, mean_squared_error, r2_score
 )
+from sklearn.utils.multiclass import unique_labels
 from rest_framework.exceptions import ValidationError
 from datasets.services import clean_for_json
 
@@ -132,17 +133,19 @@ def compute_classification_metrics(y_true, y_pred, model, X_test) -> Dict[str, A
     prec = float(precision_score(y_true, y_pred, average='weighted', zero_division=0))
     rec = float(recall_score(y_true, y_pred, average='weighted', zero_division=0))
     f1 = float(f1_score(y_true, y_pred, average='weighted', zero_division=0))
-    cm = confusion_matrix(y_true, y_pred).tolist()
-    unique_classes = [clean_for_json(c) for c in np.unique(y_true)]
+    true_classes = np.unique(y_true)
+    matrix_classes = unique_labels(y_true, y_pred)
+    cm = confusion_matrix(y_true, y_pred, labels=matrix_classes).tolist()
+    unique_classes = [clean_for_json(c) for c in matrix_classes]
 
     # ROC-AUC calculation for binary classification
     roc_auc = None
-    if len(unique_classes) == 2 and hasattr(model, 'predict_proba'):
+    if len(true_classes) == 2 and hasattr(model, 'predict_proba'):
         try:
             probs = model.predict_proba(X_test)
             if probs.shape[1] == 2:
                 # Map target classes to 0 and 1
-                pos_label = unique_classes[1]
+                pos_label = true_classes[1]
                 y_bin = (y_true == pos_label).astype(int)
                 roc_auc = round(float(roc_auc_score(y_bin, probs[:, 1])), 4)
         except Exception:
