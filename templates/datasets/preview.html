@@ -122,18 +122,19 @@
     <p class="card-desc">Sample preview of tabular records extracted directly from the stored dataset.</p>
     <div class="table-container">
         <table>
+            <caption class="visually-hidden">Dataset preview, first 10 rows</caption>
             <thead>
                 <tr>
-                    <th>#</th>
+                    <th scope="col">#</th>
                     {% for col in profiling.columns %}
-                        <th>{{ col }}</th>
+                        <th scope="col">{{ col }}</th>
                     {% endfor %}
                 </tr>
             </thead>
             <tbody>
                 {% for row in profiling.preview_table_rows %}
                 <tr>
-                    <td><strong>{{ forloop.counter }}</strong></td>
+                    <th scope="row"><strong>{{ forloop.counter }}</strong></th>
                     {% for cell in row %}
                         <td>{{ cell|default:"-" }}</td>
                     {% endfor %}
@@ -149,19 +150,20 @@
     <p class="card-desc">Schema analysis identifying inferred types and missingness ratios for each feature.</p>
     <div class="table-container">
         <table>
+            <caption class="visually-hidden">Column types and missing values</caption>
             <thead>
                 <tr>
-                    <th>Column Name</th>
-                    <th>Inferred Type</th>
-                    <th>Raw Dtype</th>
-                    <th>Missing Count</th>
-                    <th>Missing %</th>
+                    <th scope="col">Column Name</th>
+                    <th scope="col">Inferred Type</th>
+                    <th scope="col">Raw Dtype</th>
+                    <th scope="col">Missing Count</th>
+                    <th scope="col">Missing %</th>
                 </tr>
             </thead>
             <tbody>
                 {% for info in profiling.column_profiles %}
                 <tr>
-                    <td><strong>{{ info.name }}</strong></td>
+                    <th scope="row"><strong>{{ info.name }}</strong></th>
                     <td><span class="badge-type">{{ info.simplified_type }}</span></td>
                     <td><code>{{ info.raw_type }}</code></td>
                     <td>{{ info.missing_count }}</td>
@@ -178,23 +180,24 @@
     <p class="card-desc">Five-number summary and central tendency measures for numerical and categorical variables.</p>
     <div class="table-container">
         <table>
+            <caption class="visually-hidden">Descriptive statistics by feature</caption>
             <thead>
                 <tr>
-                    <th>Feature</th>
-                    <th>Count</th>
-                    <th>Mean / Unique</th>
-                    <th>Std / Top</th>
-                    <th>Min / Freq</th>
-                    <th>25%</th>
-                    <th>50% (Median)</th>
-                    <th>75%</th>
-                    <th>Max</th>
+                    <th scope="col">Feature</th>
+                    <th scope="col">Count</th>
+                    <th scope="col">Mean / Unique</th>
+                    <th scope="col">Std / Top</th>
+                    <th scope="col">Min / Freq</th>
+                    <th scope="col">25%</th>
+                    <th scope="col">50% (Median)</th>
+                    <th scope="col">75%</th>
+                    <th scope="col">Max</th>
                 </tr>
             </thead>
             <tbody>
                 {% for col, stats in profiling.statistics.items %}
                 <tr>
-                    <td><strong>{{ col }}</strong></td>
+                    <th scope="row"><strong>{{ col }}</strong></th>
                     <td>{{ stats.count|default:"-" }}</td>
                     <td>{% if stats.type == 'numeric' %}{{ stats.mean|default:"-" }}{% else %}Unique: {{ stats.unique|default:"-" }}{% endif %}</td>
                     <td>{% if stats.type == 'numeric' %}{{ stats.std|default:"-" }}{% else %}Top: {{ stats.top|default:"-" }}{% endif %}</td>

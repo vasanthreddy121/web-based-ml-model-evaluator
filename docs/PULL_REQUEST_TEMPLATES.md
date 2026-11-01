@@ -15,11 +15,11 @@ This document contains the exact commit messages, pull request titles, descripti
 
   - Add Django project ml_evaluator and datasets app
   - Implement Dataset model with storage cleanup on deletion
-  - Add robust CSV validation (MIME, size <= 10MB, tabular structure, UTF-8)
+  - Add CSV validation (case-insensitive .csv extension, size <= 10 MB, tabular structure; UTF-8, UTF-8 BOM, and Latin-1 decoding; MIME type is not checked)
   - Add filename sanitization against path traversal (TC-SEC-04)
   - Provide REST API endpoint POST /api/datasets/upload/
   - Provide interactive upload web UI
-  - Add 12 automated tests in tests/test_dataset_upload.py
+  - Add automated upload-validation tests in tests/test_dataset_upload.py
   ```
 - **PR Description:**
   ```markdown
@@ -27,12 +27,13 @@ This document contains the exact commit messages, pull request titles, descripti
   Implements CSV dataset upload, storage, and validation according to SRS ML-EVAL-F-010, ML-EVAL-F-011, and ML-EVAL-SR-003.
 
   ### Acceptance Criteria Satisfied
-  - [x] Supports CSV uploads with automatic format and extension validation.
+  - [x] Supports CSV uploads using a case-insensitive `.csv` filename extension and parsed tabular content. The uploaded MIME/content-type value is not checked.
   - [x] Enforces 10 MB maximum file size limit (`TC-SEC-04`).
+  - [x] Decodes UTF-8, UTF-8 BOM, or Latin-1 text.
   - [x] Rejects empty, whitespace-only, malformed, and header-only CSVs with clear HTTP 400 error messages (`TC-DATA-02`).
   - [x] Sanitizes filenames to eliminate directory traversal risks.
   - [x] Automatically cleans up disk storage when Dataset instances are deleted.
-  - [x] Verified with 12 automated unit and integration tests.
+  - [x] Verified with the upload-validation tests in `tests/test_dataset_upload.py`.
 
   ### Linked Issue
   Closes #1

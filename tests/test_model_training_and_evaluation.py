@@ -153,6 +153,19 @@ class TestModelTrainingAndEvaluation(TestCase):
         assert metrics['accuracy'] == 0.8
         assert metrics['confusion_matrix'] == [[2, 0], [1, 2]]
 
+    def test_classification_matrix_labels_include_predicted_only_classes(self):
+        y_true = np.array(['cat', 'dog', 'dog'])
+        y_pred = np.array(['cat', 'fox', 'fox'])
+
+        metrics = compute_classification_metrics(y_true, y_pred, None, None)
+
+        assert metrics['classes'] == ['cat', 'dog', 'fox']
+        assert metrics['confusion_matrix'] == [
+            [1, 0, 0],
+            [0, 0, 2],
+            [0, 0, 0],
+        ]
+
     # -------------------------------------------------------------
     # TC-EVAL-02: Regression Metrics Accuracy
     # -------------------------------------------------------------
@@ -346,6 +359,169 @@ class TestModelTrainingAndEvaluation(TestCase):
         assert res_post.status_code == status.HTTP_200_OK
         assert b"Evaluation Results: Decision Tree Classifier" in res_post.content
         assert b"Accuracy" in res_post.content
+
+    def test_classification_results_explain_metrics_and_render_zero_roc_auc(self):
+        experiment = Experiment.objects.create(
+            user=self.user,
+            dataset=self.clf_dataset,
+            name="Classification Results",
+            problem_type="classification",
+            model_name="logistic_regression",
+            model_display_name="Logistic Regression",
+            metrics={
+                'accuracy': 0.8,
+                'precision': 0.75,
+                'recall': 0.8,
+                'f1_score': 0.77,
+                'roc_auc': 0.0,
+            },
+        )
+        self.client.login(username='ml_engineer', password='password123')
+
+        response = self.client.get(reverse('experiment-results-web', kwargs={'pk': experiment.id}))
+
+        assert response.status_code == status.HTTP_200_OK
+        for explanation in (
+            "Share of predictions that were correct.",
+            "How often predicted classes were correct, averaged by class support.",
+            "How often actual classes were found, averaged by class support.",
+            "Balance of precision and recall, averaged by class support.",
+            "How well the model separates classes across score thresholds.",
+        ):
+            assert explanation.encode() in response.content
+        assert b"<div class=\"metric-label\">ROC-AUC</div>" in response.content
+        assert b"<div class=\"metric-val\">0.0</div>" in response.content
+        for value in (b">0.8</div>", b">0.75</div>", b">0.77</div>"):
+            assert value in response.content
+
+    def test_confusion_matrix_labels_and_counts_render_in_aligned_axes(self):
+        experiment = Experiment.objects.create(
+            user=self.user,
+            dataset=self.clf_dataset,
+            name="Predicted-only class",
+            problem_type="classification",
+            model_name="decision_tree",
+            model_display_name="Decision Tree Classifier",
+            metrics={
+                'accuracy': 0.5,
+                'classes': ['cat', 'dog', 'fox'],
+                'confusion_matrix': [[1, 0, 0], [0, 0, 2], [0, 0, 0]],
+            },
+        )
+        self.client.login(username='ml_engineer', password='password123')
+
+        response = self.client.get(reverse('experiment-results-web', kwargs={'pk': experiment.id}))
+
+        assert response.status_code == status.HTTP_200_OK
+        for label in (
+            b'Predicted class',
+            b'Predicted: cat',
+            b'Predicted: dog',
+            b'Predicted: fox',
+            b'Actual: cat',
+            b'Actual: dog',
+            b'Actual: fox',
+        ):
+            assert label in response.content
+        assert response.content.count(b'class="cm-cell"') == 9
+        assert b'<td class="cm-cell">2</td>' in response.content
+        assert b'class="confusion-matrix-scroll"' in response.content
+        assert b'overflow-x: auto' in response.content
+
+    def test_regression_results_keep_existing_metrics_without_classification_explanations(self):
+        experiment = Experiment.objects.create(
+            user=self.user,
+            dataset=self.reg_dataset,
+            name="Regression Results",
+            problem_type="regression",
+            model_name="linear_regression",
+            model_display_name="Linear Regression",
+            metrics={'mae': 1.25, 'mse': 2.5, 'rmse': 1.58, 'r2_score': 0.91},
+        )
+        self.client.login(username='ml_engineer', password='password123')
+
+        response = self.client.get(reverse('experiment-results-web', kwargs={'pk': experiment.id}))
+
+        assert response.status_code == status.HTTP_200_OK
+        for value in (b">1.25</div>", b">2.5</div>", b">1.58</div>", b">0.91</div>"):
+            assert value in response.content
+        assert b"Share of predictions that were correct." not in response.content
+
+    def test_classification_prediction_table_preserves_twenty_values_and_scrolls(self):
+        predictions = [
+            {
+                'index': index,
+                'actual': 'cat' if index == 1 else 'dog',
+                'predicted': 'dog' if index == 1 else 'dog',
+            }
+            for index in range(1, 21)
+        ]
+        experiment = Experiment.objects.create(
+            user=self.user,
+            dataset=self.clf_dataset,
+            name="Classification Prediction Table",
+            problem_type="classification",
+            model_name="decision_tree",
+            model_display_name="Decision Tree Classifier",
+            predictions_sample=predictions,
+        )
+        self.client.login(username='ml_engineer', password='password123')
+
+        response = self.client.get(reverse('experiment-results-web', kwargs={'pk': experiment.id}))
+
+        assert response.status_code == status.HTTP_200_OK
+        for heading in (b'Sample #', b'Actual value', b'Predicted value'):
+            assert heading in response.content
+        assert response.content.count(b'class="prediction-row"') == 20
+        assert b'<strong>cat</strong>' in response.content
+        assert b'<strong>dog</strong>' in response.content
+        assert b'class="prediction-table-scroll"' in response.content
+        assert b'overflow-x: auto' in response.content
+
+    def test_regression_prediction_table_renders_values_and_absolute_error(self):
+        experiment = Experiment.objects.create(
+            user=self.user,
+            dataset=self.reg_dataset,
+            name="Regression Prediction Table",
+            problem_type="regression",
+            model_name="linear_regression",
+            model_display_name="Linear Regression",
+            predictions_sample=[{'index': 1, 'actual': 12.5, 'predicted': 11.0, 'error': 1.5}],
+        )
+        self.client.login(username='ml_engineer', password='password123')
+
+        response = self.client.get(reverse('experiment-results-web', kwargs={'pk': experiment.id}))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert b'Actual value' in response.content
+        assert b'Predicted value' in response.content
+        assert b'Absolute error' in response.content
+        assert b'<strong>12.5</strong>' in response.content
+        assert b'<td>11.0</td>' in response.content
+        assert b'<td class="numeric-cell">1.5</td>' in response.content
+
+    def test_prediction_table_empty_state_uses_problem_type_column_count(self):
+        self.client.login(username='ml_engineer', password='password123')
+        cases = (
+            ('classification', self.clf_dataset, b'colspan="3"'),
+            ('regression', self.reg_dataset, b'colspan="4"'),
+        )
+
+        for problem_type, dataset, expected_colspan in cases:
+            experiment = Experiment.objects.create(
+                user=self.user,
+                dataset=dataset,
+                name=f"Empty {problem_type} Prediction Table",
+                problem_type=problem_type,
+                model_name='decision_tree' if problem_type == 'classification' else 'linear_regression',
+                model_display_name='Test Model',
+                predictions_sample=[],
+            )
+            response = self.client.get(reverse('experiment-results-web', kwargs={'pk': experiment.id}))
+
+            assert response.status_code == status.HTTP_200_OK
+            assert expected_colspan in response.content
+            assert b'No test predictions available.' in response.content
 
     def test_web_ui_history_and_compare_flow(self):
         """

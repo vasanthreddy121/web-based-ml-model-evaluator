@@ -281,6 +281,28 @@ To run tests with code coverage reporting across all modules:
 pytest --cov=datasets --cov=experiments --cov=accounts --cov-report=term-missing
 ```
 
+### Dataset CSV Upload
+
+Upload a dataset from the home page (`/`) or the upload page (`/upload/`):
+
+1. Choose a `.csv` file and submit **Validate & Upload Dataset**.
+2. The server checks that the filename ends in `.csv` (case-insensitive), that the file is non-empty and no larger than 10 MB (10,485,760 bytes), and that its contents parse as a table with at least one data row and a named column.
+3. Text decoding tries UTF-8, UTF-8 with a byte-order mark (BOM), and Latin-1. The uploaded MIME/content-type value is not checked; acceptance is based on the filename extension and parsed content.
+4. On success, the dataset is stored and listed in the uploaded-datasets table. Select **Preview & Profile** to inspect it.
+
+Common validation errors:
+
+| Error example | What to check |
+|---|---|
+| `Unsupported file format. Only CSV files (.csv) are accepted.` | Export or save the data as CSV and ensure the filename ends in `.csv`. Other formats, including spreadsheets and archives, are not accepted. |
+| `The uploaded file is empty.` | Select a file containing CSV text, not an empty or whitespace-only file. |
+| `File size exceeds maximum allowed limit of 10 MB.` | Reduce the CSV below 10 MB (10,485,760 bytes); compressed files are not accepted as CSV uploads. |
+| `Malformed CSV file: ...` | Correct inconsistent row delimiters or quoting, then export the data as a readable CSV. |
+| `Dataset must contain at least one data row.` | Include at least one data row after the header. |
+| `Dataset columns are invalid or missing names.` | Add at least one non-empty column name in the header row. |
+
+The validator does not inspect the MIME type. A `.csv` filename alone is not sufficient: the file must also parse as a valid tabular dataset.
+
 ### Complete REST API Reference
 
 | Endpoint | Method | Purpose | Issue / SRS |
@@ -289,7 +311,7 @@ pytest --cov=datasets --cov=experiments --cov=accounts --cov-report=term-missing
 | `/api/auth/login/` | `POST` | Authenticate user and initiate session | SRS `ML-EVAL-F-002` |
 | `/api/auth/logout/` | `POST` | Terminate user session | SRS `ML-EVAL-F-003` |
 | `/api/auth/me/` | `GET` | Inspect active session context | SRS `ML-EVAL-F-002` |
-| `/api/datasets/upload/` | `POST` | Upload and validate CSV dataset (max 10 MB) | Issue #1 (`ML-EVAL-F-010`) |
+| `/api/datasets/upload/` | `POST` | Upload and validate CSV dataset (max 10 MB) | Issue #1 / #16 (`ML-EVAL-F-010`) |
 | `/api/datasets/<id>/preview/` | `GET` | Preview rows, column types, missingness, and stats | Issue #2 (`ML-EVAL-F-012`) |
 | `/api/datasets/<id>/preprocess/` | `POST` | Configure imputation, encoding, scaling, and split | Issue #3 (`ML-EVAL-F-013` to `F-015`) |
 | `/api/experiments/train/` | `POST` | Train supported model and compute evaluation metrics | Issue #4 & #5 (`ML-EVAL-F-020` to `F-034`) |
@@ -309,3 +331,7 @@ Pre-configured video scripts, shot lists, and a reproducible synthetic dataset a
 - **Sprint 2 (2 Minutes):** [`docs/demos/SPRINT_2_DEMO_SCRIPT.md`](docs/demos/SPRINT_2_DEMO_SCRIPT.md)
 - **Demo Dataset:** [`docs/demos/demo_dataset.csv`](docs/demos/demo_dataset.csv)
 - **Recording Guide:** [`docs/demos/RECORDING_INSTRUCTIONS.md`](docs/demos/RECORDING_INSTRUCTIONS.md)
+
+## Accessibility Review
+
+The shared navigation and dataset upload, preview, and preprocessing pages were checked for keyboard focus, accessible control names, table structure, and readable control boundaries. The upload control has an explicit label and help text; grouped preprocessing options use fieldset legends; dataset tables provide captions and header scopes. The shared skip link and visible focus indicator are retained, and decorative navigation symbols are hidden from assistive technology.

@@ -30,33 +30,80 @@
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
-    .table-container {
+    .metric-description {
+        color: var(--gray-700);
+        font-size: 0.8rem;
+        line-height: 1.4;
+        margin-top: 0.5rem;
+    }
+    .table-container,
+    .prediction-table-scroll {
         overflow-x: auto;
         margin-top: 1rem;
         border: 1px solid var(--gray-200);
         border-radius: 6px;
     }
-    .table-container table {
+    .table-container table,
+    .confusion-matrix,
+    .prediction-table {
         width: 100%;
         border-collapse: collapse;
         font-size: 0.875rem;
     }
-    .table-container th {
+    .table-container th,
+    .confusion-matrix th,
+    .prediction-table th {
         background-color: var(--gray-100);
-        padding: 0.6rem 0.75rem;
+        padding: 0.75rem 1rem;
         text-align: left;
         border-bottom: 2px solid var(--gray-200);
         white-space: nowrap;
     }
-    .table-container td {
-        padding: 0.5rem 0.75rem;
+    .table-container td,
+    .confusion-matrix td,
+    .prediction-table td {
+        padding: 0.75rem 1rem;
         border-bottom: 1px solid var(--gray-200);
         white-space: nowrap;
+        vertical-align: middle;
+    }
+    .prediction-table {
+        min-width: 34rem;
+    }
+    .prediction-table th:first-child,
+    .prediction-table td:first-child,
+    .prediction-table .numeric-cell {
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+    }
+    .prediction-table .empty-state {
+        color: var(--gray-700);
+        padding: 1.25rem;
+        text-align: center;
     }
     .cm-cell {
         text-align: center !important;
         font-weight: 600;
         background-color: #f8fafc;
+    }
+    .confusion-matrix-scroll {
+        max-width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        margin-top: 1rem;
+        border: 1px solid var(--gray-200);
+        border-radius: 6px;
+    }
+    .confusion-matrix {
+        width: max-content !important;
+        min-width: 100%;
+    }
+    .matrix-axis-label {
+        color: var(--gray-700);
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        text-align: center;
     }
 </style>
 {% endblock %}
@@ -83,23 +130,28 @@
     {% if experiment.problem_type == 'classification' %}
         <div class="metric-card">
             <div class="metric-label">Accuracy</div>
+            <p class="metric-description">Share of predictions that were correct.</p>
             <div class="metric-val">{{ metrics.accuracy|default:"0.0" }}</div>
         </div>
         <div class="metric-card">
             <div class="metric-label">Precision (Weighted)</div>
+            <p class="metric-description">How often predicted classes were correct, averaged by class support.</p>
             <div class="metric-val">{{ metrics.precision|default:"0.0" }}</div>
         </div>
         <div class="metric-card">
             <div class="metric-label">Recall (Weighted)</div>
+            <p class="metric-description">How often actual classes were found, averaged by class support.</p>
             <div class="metric-val">{{ metrics.recall|default:"0.0" }}</div>
         </div>
         <div class="metric-card">
             <div class="metric-label">F1 Score (Weighted)</div>
+            <p class="metric-description">Balance of precision and recall, averaged by class support.</p>
             <div class="metric-val">{{ metrics.f1_score|default:"0.0" }}</div>
         </div>
-        {% if metrics.roc_auc %}
+        {% if metrics.roc_auc is not None %}
         <div class="metric-card">
             <div class="metric-label">ROC-AUC</div>
+            <p class="metric-description">How well the model separates classes across score thresholds.</p>
             <div class="metric-val">{{ metrics.roc_auc }}</div>
         </div>
         {% endif %}
@@ -126,22 +178,24 @@
 {% if experiment.problem_type == 'classification' and metrics.confusion_matrix %}
 <div class="card">
     <h2 class="card-title">Confusion Matrix</h2>
-    <p class="card-desc">Contingency matrix showing true vs predicted class distributions.</p>
-    <div class="table-container" style="max-width: 500px;">
-        <table>
+    <p class="card-desc">Rows show actual classes; columns show predicted classes.</p>
+    <div class="confusion-matrix-scroll" role="region" aria-label="Confusion matrix" tabindex="0">
+        <div class="matrix-axis-label">Predicted class</div>
+        <table class="confusion-matrix">
+            <caption class="visually-hidden">Confusion matrix counts by actual row class and predicted column class</caption>
             <thead>
                 <tr>
-                    <th>Actual \ Pred</th>
+                    <th scope="col">Actual / Predicted</th>
                     {% for c in metrics.classes %}
-                        <th style="text-align: center;">Class {{ c }}</th>
+                        <th scope="col">Predicted: {{ c }}</th>
                     {% endfor %}
                 </tr>
             </thead>
             <tbody>
-                {% for row in metrics.confusion_matrix %}
+                {% for row in confusion_matrix_rows %}
                 <tr>
-                    <td><strong>Class {{ metrics.classes|slice:forloop.counter0|last|default:forloop.counter0 }}</strong></td>
-                    {% for count in row %}
+                    <th scope="row">Actual: {{ row.actual_class }}</th>
+                    {% for count in row.counts %}
                         <td class="cm-cell">{{ count }}</td>
                     {% endfor %}
                 </tr>
@@ -155,30 +209,35 @@
 <div class="card">
     <h2 class="card-title">Test Predictions Sample (Top 20)</h2>
     <p class="card-desc">Comparison between ground truth target and model predictions on held-out test data.</p>
-    <div class="table-container">
-        <table>
+    <div class="prediction-table-scroll" role="region" aria-label="Test prediction sample table" tabindex="0">
+        <table class="prediction-table">
+            <caption class="visually-hidden">Actual and predicted values for up to 20 held-out test samples</caption>
             <thead>
                 <tr>
-                    <th>Sample #</th>
-                    <th>Actual Target</th>
-                    <th>Predicted Output</th>
+                    <th scope="col">Sample #</th>
+                    <th scope="col">Actual value</th>
+                    <th scope="col">Predicted value</th>
                     {% if experiment.problem_type == 'regression' %}
-                        <th>Absolute Error</th>
+                        <th scope="col">Absolute error</th>
                     {% endif %}
                 </tr>
             </thead>
             <tbody>
                 {% for item in predictions %}
-                <tr>
-                    <td>{{ item.index }}</td>
+                <tr class="prediction-row">
+                    <td class="numeric-cell">{{ item.index }}</td>
                     <td><strong>{{ item.actual }}</strong></td>
                     <td>{{ item.predicted }}</td>
                     {% if experiment.problem_type == 'regression' %}
-                        <td>{{ item.error|default:"0.0" }}</td>
+                        <td class="numeric-cell">{{ item.error|default:"0.0" }}</td>
                     {% endif %}
                 </tr>
                 {% empty %}
-                <tr><td colspan="4" style="text-align: center; color: #64748b;">No test predictions available.</td></tr>
+                    {% if experiment.problem_type == 'regression' %}
+                        <tr><td colspan="4" class="empty-state">No test predictions available.</td></tr>
+                    {% else %}
+                        <tr><td colspan="3" class="empty-state">No test predictions available.</td></tr>
+                    {% endif %}
                 {% endfor %}
             </tbody>
         </table>

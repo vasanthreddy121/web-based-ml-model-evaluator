@@ -74,19 +74,28 @@
         background-color: #dbeafe;
         color: #1e40af;
     }
+    .upload-file {
+        max-width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #64748b;
+        border-radius: 4px;
+        color: var(--gray-900);
+        background: #ffffff;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="card">
     <h1 class="card-title">1. Dataset Upload & Validation</h1>
-    <p class="card-desc">Upload a CSV dataset to initiate the machine learning pipeline. Files are validated for extension, file size (max 10 MB), and readable tabular structure.</p>
+    <p class="card-desc">Upload a CSV dataset to start the machine learning workflow. Files are checked for a .csv filename extension, a maximum size of 10 MB, and readable tabular structure.</p>
 
     <form method="POST" enctype="multipart/form-data" action="{% url 'dataset-web-upload' %}">
         {% csrf_token %}
         <div class="upload-box">
-            <input type="file" name="file" id="file" accept=".csv" required style="margin-bottom: 0.75rem;">
-            <p style="font-size: 0.85rem; color: #64748b;">Supported format: <strong>.csv</strong> (UTF-8, max 10 MB)</p>
+            <label for="file" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Choose a CSV file</label>
+            <input type="file" name="file" id="file" accept=".csv" required aria-describedby="file-help" class="upload-file" style="margin-bottom: 0.75rem;">
+            <p id="file-help" style="font-size: 0.85rem; color: #334155;">Supported: <strong>.csv</strong> (UTF-8, UTF-8 BOM, or Latin-1; max 10 MB / 10,485,760 bytes). Include named headers and at least one data row.</p>
             <button type="submit" class="btn">Validate & Upload Dataset</button>
         </div>
     </form>
@@ -98,15 +107,16 @@
 
     {% if datasets %}
     <table>
+        <caption class="visually-hidden">Uploaded datasets and available actions</caption>
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Filename</th>
-                <th>Rows</th>
-                <th>Columns</th>
-                <th>Size</th>
-                <th>Uploaded At</th>
-                <th>Actions</th>
+                <th scope="col">ID</th>
+                <th scope="col">Filename</th>
+                <th scope="col">Rows</th>
+                <th scope="col">Columns</th>
+                <th scope="col">Size</th>
+                <th scope="col">Uploaded At</th>
+                <th scope="col">Actions</th>
             </tr>
         </thead>
         <tbody>

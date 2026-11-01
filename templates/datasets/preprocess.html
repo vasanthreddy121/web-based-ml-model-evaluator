@@ -16,7 +16,7 @@
     .form-control {
         width: 100%;
         padding: 0.6rem 0.75rem;
-        border: 1px solid var(--gray-200);
+        border: 1px solid #64748b;
         border-radius: 6px;
         font-size: 0.95rem;
         background: #ffffff;
@@ -28,7 +28,7 @@
         background: var(--gray-50);
         padding: 1rem;
         border-radius: 6px;
-        border: 1px solid var(--gray-200);
+        border: 1px solid #64748b;
     }
     .checkbox-item {
         display: flex;
@@ -43,7 +43,9 @@
         background: var(--gray-50);
         padding: 0.75rem 1rem;
         border-radius: 6px;
-        border: 1px solid var(--gray-200);
+        border: 1px solid #64748b;
+        width: 100%;
+        min-width: 0;
     }
     .radio-item {
         display: flex;
@@ -117,31 +119,31 @@
         </div>
 
         <div class="form-group">
-            <label class="form-label">Missing Value Strategy</label>
-            <div class="radio-group">
+            <fieldset class="radio-group">
+                <legend class="form-label">Missing Value Strategy</legend>
                 <label class="radio-item"><input type="radio" name="missing_strategy" value="mean" checked> Mean (Numeric) / Mode (Categorical)</label>
                 <label class="radio-item"><input type="radio" name="missing_strategy" value="median"> Median</label>
                 <label class="radio-item"><input type="radio" name="missing_strategy" value="drop"> Drop Rows with Missing Values</label>
                 <label class="radio-item"><input type="radio" name="missing_strategy" value="none"> None / Passthrough</label>
-            </div>
+            </fieldset>
         </div>
 
         <div class="form-group">
-            <label class="form-label">Categorical Encoding</label>
-            <div class="radio-group">
+            <fieldset class="radio-group">
+                <legend class="form-label">Categorical Encoding</legend>
                 <label class="radio-item"><input type="radio" name="encoding" value="one_hot" checked> One-Hot Encoding</label>
                 <label class="radio-item"><input type="radio" name="encoding" value="label"> Ordinal / Label Encoding</label>
                 <label class="radio-item"><input type="radio" name="encoding" value="none"> None</label>
-            </div>
+            </fieldset>
         </div>
 
         <div class="form-group">
-            <label class="form-label">Feature Scaling</label>
-            <div class="radio-group">
+            <fieldset class="radio-group">
+                <legend class="form-label">Feature Scaling</legend>
                 <label class="radio-item"><input type="radio" name="scaling" value="standard" checked> Standard Scaler (Z-Score)</label>
                 <label class="radio-item"><input type="radio" name="scaling" value="minmax"> Min-Max Scaler [0, 1]</label>
                 <label class="radio-item"><input type="radio" name="scaling" value="none"> None</label>
-            </div>
+            </fieldset>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.25rem;">
@@ -191,18 +193,19 @@
     <p class="card-desc">Preview of preprocessed and scaled feature vectors ready for machine learning model training.</p>
     <div class="table-container">
         <table>
+            <caption class="visually-hidden">Transformed training features, first five rows</caption>
             <thead>
                 <tr>
-                    <th>#</th>
+                    <th scope="col">#</th>
                     {% for c in preview.columns %}
-                        <th>{{ c }}</th>
+                        <th scope="col">{{ c }}</th>
                     {% endfor %}
                 </tr>
             </thead>
             <tbody>
                 {% for row in preview.rows %}
                 <tr>
-                    <td><strong>{{ forloop.counter }}</strong></td>
+                    <th scope="row"><strong>{{ forloop.counter }}</strong></th>
                     {% for cell in row %}
                         <td>{{ cell|default:"0.0" }}</td>
                     {% endfor %}

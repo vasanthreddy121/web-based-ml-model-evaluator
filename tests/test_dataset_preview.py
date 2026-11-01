@@ -137,6 +137,29 @@ class TestDatasetPreviewProfiling(TestCase):
         assert res_b.status_code == status.HTTP_200_OK
         assert b"Access denied" in res_b.content
 
+    def test_dataset_pages_have_accessible_controls_tables_and_focus(self):
+        self.client.login(username='user_a', password='password123')
+
+        upload = self.client.get(reverse('dataset-web-upload'))
+        assert upload.status_code == status.HTTP_200_OK
+        assert b'<label for="file"' in upload.content
+        assert b'aria-describedby="file-help"' in upload.content
+        assert b'<caption class="visually-hidden">Uploaded datasets and available actions</caption>' in upload.content
+        assert b':focus-visible' in upload.content
+        assert b'class="skip-link"' in upload.content
+
+        preview = self.client.get(reverse('dataset-preview-web', kwargs={'pk': self.dataset.id}))
+        assert preview.status_code == status.HTTP_200_OK
+        assert b'<caption class="visually-hidden">Dataset preview, first 10 rows</caption>' in preview.content
+        assert b'<th scope="col">age</th>' in preview.content
+        assert b'<th scope="row"><strong>age</strong></th>' in preview.content
+
+        preprocess = self.client.get(reverse('dataset-preprocess-web', kwargs={'pk': self.dataset.id}))
+        assert preprocess.status_code == status.HTTP_200_OK
+        assert b'<legend class="form-label">Missing Value Strategy</legend>' in preprocess.content
+        assert b'<legend class="form-label">Categorical Encoding</legend>' in preprocess.content
+        assert b'<legend class="form-label">Feature Scaling</legend>' in preprocess.content
+
     def test_profile_dataset_nonexistent_file(self):
         """
         Verify service raises NotFound if the underlying file is missing.

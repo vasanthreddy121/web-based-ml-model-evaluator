@@ -281,10 +281,19 @@ def experiment_results_web_view(request, pk):
         messages.error(request, 'Access denied: You are not authorized to view this experiment.')
         return redirect('experiment-history-web')
 
+    metrics = exp.metrics or {}
+    classes = metrics.get('classes', [])
+    confusion_matrix_rows = [
+        {'actual_class': classes[index], 'counts': row}
+        for index, row in enumerate(metrics.get('confusion_matrix', []))
+        if index < len(classes)
+    ]
+
     return render(request, 'experiments/results.html', {
         'experiment': exp,
-        'metrics': exp.metrics,
-        'predictions': exp.predictions_sample
+        'metrics': metrics,
+        'predictions': exp.predictions_sample,
+        'confusion_matrix_rows': confusion_matrix_rows
     })
 
 
