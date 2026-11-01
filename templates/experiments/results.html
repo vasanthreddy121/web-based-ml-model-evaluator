@@ -158,18 +158,22 @@
     {% else %}
         <div class="metric-card">
             <div class="metric-label">MAE</div>
+            <p class="metric-description">Average absolute prediction error; lower is better.</p>
             <div class="metric-val">{{ metrics.mae|default:"0.0" }}</div>
         </div>
         <div class="metric-card">
             <div class="metric-label">MSE</div>
+            <p class="metric-description">Average squared prediction error; larger errors receive more weight; lower is better.</p>
             <div class="metric-val">{{ metrics.mse|default:"0.0" }}</div>
         </div>
         <div class="metric-card">
             <div class="metric-label">RMSE</div>
+            <p class="metric-description">Square root of MSE, expressed in the target's units; lower is better.</p>
             <div class="metric-val">{{ metrics.rmse|default:"0.0" }}</div>
         </div>
         <div class="metric-card">
             <div class="metric-label">R² Score</div>
+            <p class="metric-description">Proportion of target variance explained by the model; higher is generally better, but negative values are possible.</p>
             <div class="metric-val">{{ metrics.r2_score|default:"0.0" }}</div>
         </div>
     {% endif %}
