@@ -1,70 +1,103 @@
 {% extends "base.html" %}
 
-{% block title %}Experiment History - ML Model Evaluator{% endblock %}
+{% block title %}Experiment History & Comparison - ML Model Evaluator{% endblock %}
+
+{% block extra_head %}
+<style>
+    .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.75rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .history-title-group h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin-bottom: 0.25rem;
+    }
+    .history-title-group p {
+        color: var(--gray-700);
+        font-size: 0.925rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-    <div>
-        <h1 style="font-size: 1.5rem; font-weight: 700;">Experiment History & Comparison</h1>
-        <p style="color: var(--gray-700); font-size: 0.9rem;">Review all trained models, inspect historical metrics, and select 2 or more models to compare.</p>
+<div class="history-header">
+    <div class="history-title-group">
+        <h1>Experiment History & Comparison</h1>
+        <p>Review all trained models, inspect evaluation metrics, and select 2 or more models to benchmark head-to-head.</p>
     </div>
-    <div>
-        <a href="/" class="btn" style="background-color: var(--primary);">+ Upload New Dataset</a>
+    <div class="history-actions">
+        <a href="/" class="btn btn-primary">+ Upload New Dataset</a>
     </div>
 </div>
 
 <div class="card">
     <form method="GET" action="{% url 'experiment-compare-web' %}">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h2 class="card-title" style="margin: 0;">Historical Runs</h2>
-            <button type="submit" class="btn" style="background-color: #7c3aed; margin: 0;">📊 Compare Selected</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+                <h2 class="card-title" style="margin: 0;">Historical Runs</h2>
+                <p class="card-desc" style="margin: 0.2rem 0 0 0;">Check two or more experiments of the same workflow type to compare.</p>
+            </div>
+            {% if experiments %}
+            <button type="submit" class="btn btn-purple" style="margin: 0; font-size: 0.875rem;">
+                <span aria-hidden="true">📊</span> Compare Selected
+            </button>
+            {% endif %}
         </div>
 
         {% if experiments %}
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <div class="table-container" role="region" aria-label="Historical experiment runs" tabindex="0">
+            <table>
+                <caption class="visually-hidden">List of previous ML experiments and selection controls</caption>
                 <thead>
-                    <tr style="background: var(--gray-100); text-align: left; border-bottom: 2px solid var(--gray-200);">
-                        <th style="padding: 0.75rem 1rem; width: 40px;">Select</th>
-                        <th style="padding: 0.75rem 1rem;">ID</th>
-                        <th style="padding: 0.75rem 1rem;">Model</th>
-                        <th style="padding: 0.75rem 1rem;">Type</th>
-                        <th style="padding: 0.75rem 1rem;">Dataset</th>
-                        <th style="padding: 0.75rem 1rem;">Key Metric</th>
-                        <th style="padding: 0.75rem 1rem;">Runtime</th>
-                        <th style="padding: 0.75rem 1rem;">Trained At</th>
-                        <th style="padding: 0.75rem 1rem;">Actions</th>
+                    <tr>
+                        <th scope="col" style="width: 44px; text-align: center;">Select</th>
+                        <th scope="col">ID</th>
+                        <th scope="col">Model</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Dataset</th>
+                        <th scope="col">Key Metric</th>
+                        <th scope="col">Runtime</th>
+                        <th scope="col">Trained At</th>
+                        <th scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for exp in experiments %}
-                    <tr style="border-bottom: 1px solid var(--gray-200);">
-                        <td style="padding: 0.75rem 1rem; text-align: center;">
-                            <input type="checkbox" name="exp_id" value="{{ exp.id }}">
+                    <tr>
+                        <td style="text-align: center;">
+                            <input type="checkbox" name="exp_id" value="{{ exp.id }}" aria-label="Select experiment #{{ exp.id }} ({{ exp.model_display_name }})">
                         </td>
-                        <td style="padding: 0.75rem 1rem;">
+                        <td>
                             <span class="badge">#{{ exp.id }}</span>
                         </td>
-                        <td style="padding: 0.75rem 1rem;">
+                        <td>
                             <strong>{{ exp.model_display_name }}</strong>
                         </td>
-                        <td style="padding: 0.75rem 1rem; text-transform: capitalize;">
-                            <span style="font-weight: 500; color: {% if exp.problem_type == 'classification' %}#2563eb{% else %}#16a34a{% endif %};">
+                        <td style="text-transform: capitalize;">
+                            <span class="badge {% if exp.problem_type == 'classification' %}badge-primary{% else %}badge-success{% endif %}">
                                 {{ exp.problem_type }}
                             </span>
                         </td>
-                        <td style="padding: 0.75rem 1rem;">{{ exp.dataset.filename }}</td>
-                        <td style="padding: 0.75rem 1rem;">
+                        <td style="color: var(--gray-700);">{{ exp.dataset.filename }}</td>
+                        <td>
                             {% if exp.problem_type == 'classification' %}
                                 F1: <strong>{{ exp.metrics.f1_score|default:"-" }}</strong> &bull; Acc: {{ exp.metrics.accuracy|default:"-" }}
                             {% else %}
                                 RMSE: <strong>{{ exp.metrics.rmse|default:"-" }}</strong> &bull; R²: {{ exp.metrics.r2_score|default:"-" }}
                             {% endif %}
                         </td>
-                        <td style="padding: 0.75rem 1rem;">{{ exp.training_time_seconds }}s</td>
-                        <td style="padding: 0.75rem 1rem; color: #64748b;">{{ exp.created_at|date:"M d, H:i" }}</td>
-                        <td style="padding: 0.75rem 1rem;">
-                            <a href="{% url 'experiment-results-web' exp.id %}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; margin: 0;">Results</a>
+                        <td style="color: var(--gray-700);">{{ exp.training_time_seconds }}s</td>
+                        <td style="color: var(--gray-600); font-size: 0.85rem;">{{ exp.created_at|date:"M d, H:i" }}</td>
+                        <td>
+                            <a href="{% url 'experiment-results-web' exp.id %}" class="btn btn-sm btn-primary" style="margin: 0; padding: 0.25rem 0.65rem; font-size: 0.8rem;">
+                                Results
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -72,11 +105,18 @@
             </table>
         </div>
         {% else %}
-        <p style="color: #64748b; font-style: italic; padding: 2rem 0; text-align: center;">
-            No experiments found. <a href="/">Upload a dataset</a> and train a model to begin!
-        </p>
+        <!-- Meaningful Empty State Component (Issue #8) -->
+        <div class="empty-state">
+            <div class="empty-state-icon" aria-hidden="true">🧪</div>
+            <h3 class="empty-state-title">No experiments found</h3>
+            <p class="empty-state-desc">
+                No experiments found. <a href="/">Upload a dataset</a> and train a model to begin! Once you fit classification or regression algorithms, their metrics, execution runtime, and prediction comparisons will be archived here.
+            </p>
+            <div class="empty-state-actions">
+                <a href="/" class="btn btn-primary">+ Upload a Dataset to Train</a>
+            </div>
+        </div>
         {% endif %}
     </form>
 </div>
 {% endblock %}
-

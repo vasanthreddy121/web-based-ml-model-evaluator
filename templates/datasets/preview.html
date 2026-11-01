@@ -4,6 +4,24 @@
 
 {% block extra_head %}
 <style>
+    .page-header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.75rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .page-header-titles h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin-bottom: 0.25rem;
+    }
+    .page-header-titles p {
+        color: var(--gray-700);
+        font-size: 0.925rem;
+    }
     .metrics-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -13,10 +31,10 @@
     .metric-card {
         background: #ffffff;
         border: 1px solid var(--gray-200);
-        border-radius: 8px;
+        border-radius: var(--radius-lg);
         padding: 1.25rem;
         text-align: center;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        box-shadow: var(--shadow-sm);
     }
     .metric-val {
         font-size: 1.75rem;
@@ -25,72 +43,43 @@
         margin-top: 0.25rem;
     }
     .metric-label {
-        font-size: 0.85rem;
-        color: var(--gray-700);
+        font-size: 0.8rem;
+        color: var(--gray-600);
         text-transform: uppercase;
         letter-spacing: 0.05em;
-    }
-    .table-container {
-        overflow-x: auto;
-        margin-top: 1rem;
-        border: 1px solid var(--gray-200);
-        border-radius: 6px;
-    }
-    .table-container table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.875rem;
-    }
-    .table-container th {
-        background-color: var(--gray-100);
-        padding: 0.75rem 1rem;
-        text-align: left;
-        border-bottom: 2px solid var(--gray-200);
         font-weight: 600;
-        white-space: nowrap;
-    }
-    .table-container td {
-        padding: 0.6rem 1rem;
-        border-bottom: 1px solid var(--gray-200);
-        white-space: nowrap;
     }
     .badge-type {
         display: inline-block;
-        padding: 0.15rem 0.45rem;
+        padding: 0.2rem 0.5rem;
         font-size: 0.75rem;
         font-weight: 600;
         border-radius: 4px;
         background: #f1f5f9;
         color: #475569;
     }
-    .badge-danger {
-        background: #fee2e2;
-        color: #b91c1c;
-    }
-    .badge-success {
-        background: #dcfce7;
-        color: #15803d;
-    }
-    .btn-secondary {
-        background-color: #64748b;
-    }
-    .btn-secondary:hover {
-        background-color: #475569;
+    @media (max-width: 768px) {
+        .page-header-actions {
+            width: 100%;
+        }
+        .page-header-actions .btn {
+            flex: 1 1 auto;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <div>
-        <h1 style="font-size: 1.5rem; font-weight: 700;">Dataset Profile: {{ dataset.filename }}</h1>
-        <p style="color: var(--gray-700); font-size: 0.9rem;">Uploaded on {{ dataset.uploaded_at|date:"F j, Y, H:i" }} &bull; File Size: {{ dataset.file_size|filesizeformat }}</p>
+<div class="page-header-bar">
+    <div class="page-header-titles">
+        <h1>Dataset Profile: {{ dataset.filename }}</h1>
+        <p>Uploaded on {{ dataset.uploaded_at|date:"F j, Y, H:i" }} &bull; File Size: {{ dataset.file_size|filesizeformat }}</p>
     </div>
-    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+    <div class="page-header-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <a href="{% url 'dataset-web-upload' %}" class="btn btn-secondary">&larr; Back to Datasets</a>
-        <a href="{% url 'dataset-preprocess-web' dataset.id %}" class="btn" style="background-color: var(--success);">Configure Preprocessing</a>
+        <a href="{% url 'dataset-preprocess-web' dataset.id %}" class="btn btn-success">Configure Preprocessing</a>
         <a href="{% url 'experiment-train-web' dataset.id %}" class="btn" style="background-color: #0284c7;">&rarr; Train Model</a>
-        <a href="/api/datasets/{{ dataset.id }}/preview/" target="_blank" class="btn">View Raw JSON</a>
+        <a href="/api/datasets/{{ dataset.id }}/preview/" target="_blank" class="btn btn-outline">View Raw JSON</a>
     </div>
 </div>
 
@@ -105,22 +94,24 @@
     </div>
     <div class="metric-card">
         <div class="metric-label">Missing Values</div>
-        <div class="metric-val {% if profiling.missing_values.total_missing > 0 %}badge-danger{% endif %}">
+        <div class="metric-val {% if profiling.missing_values.total_missing > 0 %}badge-danger{% endif %}" style="{% if profiling.missing_values.total_missing > 0 %}color: var(--danger);{% endif %}">
             {{ profiling.missing_values.total_missing }}
         </div>
     </div>
     <div class="metric-card">
         <div class="metric-label">Duplicate Rows</div>
-        <div class="metric-val {% if profiling.duplicate_rows_count > 0 %}badge-danger{% endif %}">
+        <div class="metric-val {% if profiling.duplicate_rows_count > 0 %}badge-danger{% endif %}" style="{% if profiling.duplicate_rows_count > 0 %}color: var(--danger);{% endif %}">
             {{ profiling.duplicate_rows_count }}
         </div>
     </div>
 </div>
 
 <div class="card">
-    <h2 class="card-title">1. Data Preview (First 10 Rows)</h2>
-    <p class="card-desc">Sample preview of tabular records extracted directly from the stored dataset.</p>
-    <div class="table-container">
+    <div class="card-header">
+        <h2 class="card-title">1. Data Preview (First 10 Rows)</h2>
+        <p class="card-desc">Sample preview of tabular records extracted directly from the stored dataset.</p>
+    </div>
+    <div class="table-container" role="region" aria-label="First 10 rows dataset preview" tabindex="0">
         <table>
             <caption class="visually-hidden">Dataset preview, first 10 rows</caption>
             <thead>
@@ -146,9 +137,11 @@
 </div>
 
 <div class="card">
-    <h2 class="card-title">2. Columns & Data Types</h2>
-    <p class="card-desc">Schema analysis identifying inferred types and missingness ratios for each feature.</p>
-    <div class="table-container">
+    <div class="card-header">
+        <h2 class="card-title">2. Columns & Data Types</h2>
+        <p class="card-desc">Schema analysis identifying inferred types and missingness ratios for each feature.</p>
+    </div>
+    <div class="table-container" role="region" aria-label="Column profiles and types" tabindex="0">
         <table>
             <caption class="visually-hidden">Column types and missing values</caption>
             <thead>
@@ -176,9 +169,11 @@
 </div>
 
 <div class="card">
-    <h2 class="card-title">3. Statistical Distribution</h2>
-    <p class="card-desc">Five-number summary and central tendency measures for numerical and categorical variables.</p>
-    <div class="table-container">
+    <div class="card-header">
+        <h2 class="card-title">3. Statistical Distribution</h2>
+        <p class="card-desc">Five-number summary and central tendency measures for numerical and categorical variables.</p>
+    </div>
+    <div class="table-container" role="region" aria-label="Descriptive statistical distribution" tabindex="0">
         <table>
             <caption class="visually-hidden">Descriptive statistics by feature</caption>
             <thead>

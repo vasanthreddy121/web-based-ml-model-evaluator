@@ -1,143 +1,352 @@
 {% extends "base.html" %}
 
-{% block title %}Upload Dataset - ML Model Evaluator{% endblock %}
+{% block title %}Dashboard & Dataset Upload - ML Model Evaluator{% endblock %}
 
 {% block extra_head %}
 <style>
-    .card {
+    /* Dashboard Hero & Steps (Issue #7) */
+    .dashboard-hero {
+        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        border-radius: var(--radius-lg);
+        padding: 2rem 2.25rem;
+        color: #ffffff;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-md);
+    }
+    .hero-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .hero-subtitle {
+        color: #bfdbfe;
+        font-size: 1rem;
+        max-width: 680px;
+        line-height: 1.5;
+        margin-bottom: 1.5rem;
+    }
+
+    .workflow-tracker {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: var(--radius-md);
+        padding: 0.75rem;
+    }
+    .step-item {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #dbeafe;
+    }
+    .step-item.active {
+        background: #ffffff;
+        color: var(--primary);
+        font-weight: 700;
+        box-shadow: var(--shadow-sm);
+    }
+    .step-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.25);
+        font-size: 0.75rem;
+    }
+    .step-item.active .step-num {
+        background: var(--primary);
+        color: #ffffff;
+    }
+
+    /* Dashboard Metrics Overview (Issue #7) */
+    .dashboard-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .metric-pill {
         background: #ffffff;
         border: 1px solid var(--gray-200);
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border-radius: var(--radius-md);
+        padding: 1rem 1.25rem;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
-    .card-title {
-        font-size: 1.25rem;
+    .metric-pill-label {
+        font-size: 0.8rem;
         font-weight: 600;
-        margin-bottom: 0.5rem;
+        color: var(--gray-600);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.25rem;
     }
-    .card-desc {
-        color: var(--gray-700);
-        font-size: 0.9rem;
-        margin-bottom: 1.25rem;
+    .metric-pill-val {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--gray-900);
     }
+    .metric-pill-sub {
+        font-size: 0.8rem;
+        color: var(--gray-600);
+        margin-top: 0.2rem;
+    }
+
+    /* Upload Zone (Issue #7 & #10) */
     .upload-box {
-        border: 2px dashed var(--gray-200);
-        border-radius: 8px;
-        padding: 2.5rem;
+        border: 2px dashed #93c5fd;
+        border-radius: var(--radius-lg);
+        padding: 2.25rem 2rem;
         text-align: center;
         background: var(--gray-50);
-        transition: border-color 0.2s;
+        transition: all 0.2s ease;
+        margin-top: 1rem;
     }
-    .upload-box:hover {
+    .upload-box:hover,
+    .upload-box:focus-within {
         border-color: var(--primary);
+        background: var(--primary-light);
     }
-    .btn {
-        display: inline-block;
-        background-color: var(--primary);
-        color: #ffffff;
-        padding: 0.625rem 1.25rem;
-        border-radius: 6px;
-        border: none;
-        font-weight: 500;
-        cursor: pointer;
-        margin-top: 1rem;
-        text-decoration: none;
-        font-size: 0.95rem;
-    }
-    .btn:hover {
-        background-color: var(--primary-hover);
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 1rem;
-    }
-    th, td {
-        padding: 0.75rem 1rem;
-        text-align: left;
-        border-bottom: 1px solid var(--gray-200);
-        font-size: 0.9rem;
-    }
-    th {
-        background-color: var(--gray-50);
-        font-weight: 600;
-        color: var(--gray-700);
-    }
-    .badge {
-        display: inline-block;
-        padding: 0.2rem 0.5rem;
-        font-size: 0.75rem;
-        font-weight: 600;
-        border-radius: 9999px;
-        background-color: #dbeafe;
-        color: #1e40af;
+    .upload-icon {
+        font-size: 2.5rem;
+        color: var(--primary);
+        margin-bottom: 0.75rem;
+        line-height: 1;
     }
     .upload-file {
         max-width: 100%;
-        padding: 0.5rem;
-        border: 1px solid #64748b;
-        border-radius: 4px;
+        padding: 0.6rem 0.85rem;
+        border: 1px solid var(--gray-300);
+        border-radius: var(--radius-md);
         color: var(--gray-900);
         background: #ffffff;
+        font-size: 0.925rem;
+        cursor: pointer;
+    }
+    .upload-specs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+        text-align: left;
+    }
+    .spec-card {
+        background: #ffffff;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-md);
+        padding: 0.75rem;
+        font-size: 0.825rem;
+    }
+    .spec-card strong {
+        display: block;
+        color: var(--gray-900);
+        margin-bottom: 0.2rem;
+        font-size: 0.85rem;
+    }
+    .spec-card span {
+        color: var(--gray-600);
+        line-height: 1.35;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-hero {
+            padding: 1.5rem;
+        }
+        .hero-title {
+            font-size: 1.4rem;
+        }
+        .workflow-tracker {
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .upload-box {
+            padding: 1.5rem 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .workflow-tracker {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1 class="card-title">1. Dataset Upload & Validation</h1>
-    <p class="card-desc">Upload a CSV dataset to start the machine learning workflow. Files are checked for a .csv filename extension, a maximum size of 10 MB, and readable tabular structure.</p>
+<!-- Dashboard Hero Header (Issue #7) -->
+<div class="dashboard-hero">
+    <h1 class="hero-title"><span aria-hidden="true">⚡</span> ML Experimentation Dashboard</h1>
+    <p class="hero-subtitle">Upload CSV datasets, validate schema boundaries, configure preprocessing pipelines, train machine learning algorithms, and compare model benchmarks.</p>
 
-    <form method="POST" enctype="multipart/form-data" action="{% url 'dataset-web-upload' %}">
+    <!-- Workflow Progress Bar (Issue #7 & #9) -->
+    <div class="workflow-tracker" aria-label="Experimentation pipeline stages">
+        <div class="step-item active">
+            <span class="step-num" aria-hidden="true">1</span>
+            <span>Upload & Validate</span>
+        </div>
+        <div class="step-item">
+            <span class="step-num" aria-hidden="true">2</span>
+            <span>Profile & Preprocess</span>
+        </div>
+        <div class="step-item">
+            <span class="step-num" aria-hidden="true">3</span>
+            <span>Train & Evaluate</span>
+        </div>
+        <div class="step-item">
+            <span class="step-num" aria-hidden="true">4</span>
+            <span>Compare Benchmarks</span>
+        </div>
+    </div>
+</div>
+
+<!-- Dashboard Quick Stats (Issue #7) -->
+<div class="dashboard-metrics">
+    <div class="metric-pill">
+        <span class="metric-pill-label">Catalog Datasets</span>
+        <span class="metric-pill-val">{{ datasets|length }}</span>
+        <span class="metric-pill-sub">Stored in local catalog</span>
+    </div>
+    <div class="metric-pill">
+        <span class="metric-pill-label">Supported Algorithms</span>
+        <span class="metric-pill-val">11</span>
+        <span class="metric-pill-sub">6 Classification, 5 Regression</span>
+    </div>
+    <div class="metric-pill">
+        <span class="metric-pill-label">Upload Size Limit</span>
+        <span class="metric-pill-val">10 MB</span>
+        <span class="metric-pill-sub">Strict CSV tabular format</span>
+    </div>
+    <div class="metric-pill">
+        <span class="metric-pill-label">Preprocessing</span>
+        <span class="metric-pill-val">Automated</span>
+        <span class="metric-pill-sub">Imputation, encoding & scaling</span>
+    </div>
+</div>
+
+<!-- Card 1: Dataset Upload Form (Issue #7 & Issue #10) -->
+<div class="card" id="upload-section">
+    <div class="card-header">
+        <h2 class="card-title">1. Dataset Upload & Validation</h2>
+        <p class="card-desc">Upload a CSV dataset to start the machine learning workflow. Files are checked for a .csv filename extension, a maximum size of 10 MB, and readable tabular structure.</p>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" action="{% url 'dataset-web-upload' %}" id="file-upload-form">
         {% csrf_token %}
         <div class="upload-box">
-            <label for="file" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Choose a CSV file</label>
+            <div class="upload-icon" aria-hidden="true">📄</div>
+            <label for="file" class="form-label" style="display: block; font-weight: 700; font-size: 1.05rem; margin-bottom: 0.5rem; color: var(--gray-900);">
+                Choose a CSV file <span class="field-required" aria-hidden="true">*</span>
+            </label>
             <input type="file" name="file" id="file" accept=".csv" required aria-describedby="file-help" class="upload-file" style="margin-bottom: 0.75rem;">
-            <p id="file-help" style="font-size: 0.85rem; color: #334155;">Supported: <strong>.csv</strong> (UTF-8, UTF-8 BOM, or Latin-1; max 10 MB / 10,485,760 bytes). Include named headers and at least one data row.</p>
-            <button type="submit" class="btn">Validate & Upload Dataset</button>
+            <p id="file-help" style="font-size: 0.875rem; color: #334155; line-height: 1.4; max-width: 600px; margin: 0 auto 0.75rem auto;">
+                Supported: <strong>.csv</strong> (UTF-8, UTF-8 BOM, or Latin-1; max 10 MB / 10,485,760 bytes). Include named headers and at least one data row.
+            </p>
+
+            <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem; padding: 0.65rem 1.5rem; font-size: 0.95rem;">
+                <span aria-hidden="true">🚀</span> Validate & Upload Dataset
+            </button>
+        </div>
+
+        <!-- Inline Specification Guide (Issue #10) -->
+        <div class="upload-specs" id="file-requirements" aria-label="Upload file requirements">
+            <div class="spec-card">
+                <strong>Format Requirement</strong>
+                <span>Only genuine comma-separated (.csv) files are supported. JSON, Excel, ZIP, and other extensions are rejected.</span>
+            </div>
+            <div class="spec-card">
+                <strong>File Size Constraint</strong>
+                <span>Files must not exceed 10 MB (10,485,760 bytes) and must not be completely empty or whitespace-only.</span>
+            </div>
+            <div class="spec-card">
+                <strong>Encoding & Structure</strong>
+                <span>Text encoded in UTF-8, UTF-8 with BOM, or Latin-1. Must contain column header names and at least 1 data row.</span>
+            </div>
         </div>
     </form>
 </div>
 
-<div class="card">
-    <h2 class="card-title">Uploaded Datasets</h2>
-    <p class="card-desc">Recent validated datasets stored in the local catalog.</p>
+<!-- Card 2: Uploaded Datasets List (Issue #7 & Issue #8) -->
+<div class="card" id="datasets-catalog">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+            <h2 class="card-title">Uploaded Datasets</h2>
+            <p class="card-desc">Recent validated datasets stored in the local catalog.</p>
+        </div>
+        {% if datasets %}
+            <span class="badge" style="font-size: 0.8rem;">{{ datasets|length }} dataset{% if datasets|length != 1 %}s{% endif %} available</span>
+        {% endif %}
+    </div>
 
     {% if datasets %}
-    <table>
-        <caption class="visually-hidden">Uploaded datasets and available actions</caption>
-        <thead>
-            <tr>
-                <th scope="col">ID</th>
-                <th scope="col">Filename</th>
-                <th scope="col">Rows</th>
-                <th scope="col">Columns</th>
-                <th scope="col">Size</th>
-                <th scope="col">Uploaded At</th>
-                <th scope="col">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for ds in datasets %}
-            <tr>
-                <td><span class="badge">#{{ ds.id }}</span></td>
-                <td><strong>{{ ds.filename }}</strong></td>
-                <td>{{ ds.row_count }}</td>
-                <td>{{ ds.column_count }}</td>
-                <td>{{ ds.file_size|filesizeformat }}</td>
-                <td>{{ ds.uploaded_at|date:"M d, Y H:i" }}</td>
-                <td>
-                    <a href="{% url 'dataset-preview-web' ds.id %}" class="btn" style="padding: 0.3rem 0.75rem; font-size: 0.8rem; margin: 0;">Preview & Profile</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-container" role="region" aria-label="Uploaded datasets list" tabindex="0">
+        <table>
+            <caption class="visually-hidden">Uploaded datasets and available actions</caption>
+            <thead>
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Filename</th>
+                    <th scope="col">Rows</th>
+                    <th scope="col">Columns</th>
+                    <th scope="col">Size</th>
+                    <th scope="col">Uploaded At</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ds in datasets %}
+                <tr>
+                    <td><span class="badge">#{{ ds.id }}</span></td>
+                    <td><strong>{{ ds.filename }}</strong></td>
+                    <td>{{ ds.row_count }}</td>
+                    <td>{{ ds.column_count }}</td>
+                    <td>{{ ds.file_size|filesizeformat }}</td>
+                    <td style="color: var(--gray-600);">{{ ds.uploaded_at|date:"M d, Y H:i" }}</td>
+                    <td>
+                        <div style="display: flex; gap: 0.4rem; align-items: center;">
+                            <a href="{% url 'dataset-preview-web' ds.id %}" class="btn btn-sm btn-primary" style="margin: 0; padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+                                Preview & Profile
+                            </a>
+                            <a href="{% url 'experiment-train-web' ds.id %}" class="btn btn-sm btn-secondary" style="margin: 0; padding: 0.35rem 0.75rem; font-size: 0.8rem; background-color: #0284c7;">
+                                Train Model
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-    <p style="color: #64748b; font-style: italic;">No datasets uploaded yet. Upload a CSV file above to get started.</p>
+    <!-- Meaningful Empty State Component (Issue #8) -->
+    <div class="empty-state">
+        <div class="empty-state-icon" aria-hidden="true">📊</div>
+        <h3 class="empty-state-title">No datasets uploaded yet</h3>
+        <p class="empty-state-desc">
+            No datasets uploaded yet. Upload a CSV file above to get started. Once uploaded, you can preview summary statistics, configure feature preprocessing, and train machine learning models.
+        </p>
+        <div class="empty-state-actions">
+            <a href="#file" class="btn btn-primary" onclick="document.getElementById('file').focus(); return false;">
+                <span aria-hidden="true">📁</span> Choose CSV File Above
+            </a>
+            <a href="{% url 'experiment-history-web' %}" class="btn btn-outline">
+                Inspect Experiment History
+            </a>
+        </div>
+    </div>
     {% endif %}
 </div>
 {% endblock %}
-

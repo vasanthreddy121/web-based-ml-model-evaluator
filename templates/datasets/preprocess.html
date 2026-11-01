@@ -4,194 +4,298 @@
 
 {% block extra_head %}
 <style>
-    .form-group {
-        margin-bottom: 1.25rem;
+    .page-header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.75rem;
+        flex-wrap: wrap;
+        gap: 1rem;
     }
-    .form-label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        color: var(--gray-900);
+    .page-header-titles h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin-bottom: 0.25rem;
     }
-    .form-control {
-        width: 100%;
-        padding: 0.6rem 0.75rem;
-        border: 1px solid #64748b;
-        border-radius: 6px;
-        font-size: 0.95rem;
-        background: #ffffff;
+    .page-header-titles p {
+        color: var(--gray-700);
+        font-size: 0.925rem;
     }
     .checkbox-group {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 0.5rem;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 0.6rem;
         background: var(--gray-50);
         padding: 1rem;
-        border-radius: 6px;
-        border: 1px solid #64748b;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--gray-300);
+        max-height: 240px;
+        overflow-y: auto;
     }
     .checkbox-item {
         display: flex;
         align-items: center;
         gap: 0.5rem;
         font-size: 0.9rem;
+        color: var(--gray-900);
+        cursor: pointer;
     }
     .radio-group {
         display: flex;
-        gap: 1.5rem;
-        flex-wrap: wrap;
+        flex-direction: column;
+        gap: 0.6rem;
         background: var(--gray-50);
-        padding: 0.75rem 1rem;
-        border-radius: 6px;
-        border: 1px solid #64748b;
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--gray-300);
         width: 100%;
         min-width: 0;
     }
     .radio-item {
         display: flex;
-        align-items: center;
-        gap: 0.4rem;
+        align-items: flex-start;
+        gap: 0.5rem;
         font-size: 0.9rem;
+        cursor: pointer;
     }
-    .table-container {
-        overflow-x: auto;
+    .radio-item input {
+        margin-top: 0.2rem;
+    }
+    .option-title {
+        font-weight: 600;
+        color: var(--gray-900);
+    }
+    .option-desc {
+        color: var(--gray-600);
+        font-size: 0.825rem;
+        display: block;
+    }
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 1rem;
         margin-top: 1rem;
+    }
+    .summary-card {
+        background: var(--gray-50);
         border: 1px solid var(--gray-200);
-        border-radius: 6px;
+        padding: 1.15rem 1rem;
+        border-radius: var(--radius-md);
+        text-align: center;
     }
-    .table-container table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.85rem;
+    .summary-card-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--gray-600);
+        letter-spacing: 0.05em;
+        margin-bottom: 0.35rem;
     }
-    .table-container th {
-        background-color: var(--gray-100);
-        padding: 0.6rem 0.75rem;
-        text-align: left;
-        border-bottom: 2px solid var(--gray-200);
-        white-space: nowrap;
-    }
-    .table-container td {
-        padding: 0.5rem 0.75rem;
-        border-bottom: 1px solid var(--gray-200);
-        white-space: nowrap;
+    .summary-card-val {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--primary);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <div>
-        <h1 style="font-size: 1.5rem; font-weight: 700;">2. Preprocessing & Feature Selection</h1>
-        <p style="color: var(--gray-700); font-size: 0.9rem;">Dataset: <strong>{{ dataset.filename }}</strong> ({{ dataset.row_count }} rows, {{ dataset.column_count }} columns)</p>
+<div class="page-header-bar">
+    <div class="page-header-titles">
+        <h1>2. Preprocessing & Feature Selection</h1>
+        <p>Dataset: <strong>{{ dataset.filename }}</strong> ({{ dataset.row_count }} rows, {{ dataset.column_count }} columns)</p>
     </div>
-    <div style="display: flex; gap: 0.5rem;">
-        <a href="{% url 'dataset-preview-web' dataset.id %}" class="btn" style="background-color: #64748b;">&larr; View Profile</a>
+    <div class="page-header-actions">
+        <a href="{% url 'dataset-preview-web' dataset.id %}" class="btn btn-secondary">&larr; View Profile</a>
     </div>
 </div>
 
 <div class="card">
-    <h2 class="card-title">Configure Pipeline Transformations</h2>
-    <p class="card-desc">Set feature selection, imputation, encoding, scaling, and train-test split parameters. Transformations are fit exclusively on training data to prevent leakage.</p>
+    <div class="card-header">
+        <h2 class="card-title">Configure Pipeline Transformations</h2>
+        <p class="card-desc">Set feature selection, imputation, encoding, scaling, and train-test split parameters. Transformations are fit exclusively on training data to prevent leakage.</p>
+    </div>
 
     <form method="POST">
         {% csrf_token %}
         <div class="form-group">
-            <label class="form-label" for="target_column">Target Variable (y) <span style="color: var(--danger);">*</span></label>
-            <select name="target_column" id="target_column" class="form-control" required>
+            <label class="form-label" for="target_column">
+                Target Variable (y) <span class="field-required">*</span>
+            </label>
+            <select name="target_column" id="target_column" class="form-control" aria-describedby="target-help" required>
                 <option value="">-- Select Target Column --</option>
                 {% for col in columns %}
                     <option value="{{ col }}" {% if forloop.last %}selected{% endif %}>{{ col }}</option>
                 {% endfor %}
             </select>
+            <p class="form-text" id="target-help">The primary dependent variable you want machine learning models to predict (e.g. class label or continuous numeric outcome).</p>
         </div>
 
         <div class="form-group">
-            <label class="form-label">Input Features (X) <span style="font-weight: normal; font-size: 0.85rem; color: var(--gray-700);">(Select columns to include)</span></label>
-            <div class="checkbox-group">
-                {% for col in columns %}
-                    <label class="checkbox-item">
-                        <input type="checkbox" name="feature_columns" value="{{ col }}" {% if not forloop.last %}checked{% endif %}>
-                        {{ col }}
-                    </label>
-                {% endfor %}
-            </div>
+            <fieldset style="border: none; padding: 0; margin: 0;">
+                <legend class="form-label">
+                    Input Features (X) <span class="field-required">*</span>
+                    <span class="field-optional">(Check columns to include in training)</span>
+                </legend>
+                <p class="form-text" style="margin-bottom: 0.5rem;" id="features-help">Independent explanatory attributes fed into algorithms. Exclude the target variable.</p>
+                <div class="checkbox-group" aria-describedby="features-help">
+                    {% for col in columns %}
+                        <label class="checkbox-item" for="feat_{{ forloop.counter }}">
+                            <input type="checkbox" name="feature_columns" id="feat_{{ forloop.counter }}" value="{{ col }}" {% if not forloop.last %}checked{% endif %}>
+                            <span>{{ col }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
         </div>
 
         <div class="form-group">
             <fieldset class="radio-group">
                 <legend class="form-label">Missing Value Strategy</legend>
-                <label class="radio-item"><input type="radio" name="missing_strategy" value="mean" checked> Mean (Numeric) / Mode (Categorical)</label>
-                <label class="radio-item"><input type="radio" name="missing_strategy" value="median"> Median</label>
-                <label class="radio-item"><input type="radio" name="missing_strategy" value="drop"> Drop Rows with Missing Values</label>
-                <label class="radio-item"><input type="radio" name="missing_strategy" value="none"> None / Passthrough</label>
+                <p class="form-text" style="margin-bottom: 0.5rem;">Select imputation method for null, empty, or unrecorded values.</p>
+                <label class="radio-item">
+                    <input type="radio" name="missing_strategy" value="mean" checked>
+                    <div>
+                        <span class="option-title">Mean (Numeric) / Mode (Categorical)</span>
+                        <span class="option-desc">Replaces numeric NaNs with column average, categorical NaNs with most frequent value.</span>
+                    </div>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="missing_strategy" value="median">
+                    <div>
+                        <span class="option-title">Median</span>
+                        <span class="option-desc">Replaces numeric NaNs with 50th percentile (robust to extreme outliers).</span>
+                    </div>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="missing_strategy" value="drop">
+                    <div>
+                        <span class="option-title">Drop Rows with Missing Values</span>
+                        <span class="option-desc">Discards any record that contains one or more null values.</span>
+                    </div>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="missing_strategy" value="none">
+                    <div>
+                        <span class="option-title">None / Passthrough</span>
+                        <span class="option-desc">Leaves values untouched (only suitable if your dataset has 0 missing entries).</span>
+                    </div>
+                </label>
             </fieldset>
         </div>
 
         <div class="form-group">
             <fieldset class="radio-group">
                 <legend class="form-label">Categorical Encoding</legend>
-                <label class="radio-item"><input type="radio" name="encoding" value="one_hot" checked> One-Hot Encoding</label>
-                <label class="radio-item"><input type="radio" name="encoding" value="label"> Ordinal / Label Encoding</label>
-                <label class="radio-item"><input type="radio" name="encoding" value="none"> None</label>
+                <p class="form-text" style="margin-bottom: 0.5rem;">Transforms categorical string columns into numeric representations.</p>
+                <label class="radio-item">
+                    <input type="radio" name="encoding" value="one_hot" checked>
+                    <div>
+                        <span class="option-title">One-Hot Encoding</span>
+                        <span class="option-desc">Creates binary indicator column per category level (standard for nominal categories).</span>
+                    </div>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="encoding" value="label">
+                    <div>
+                        <span class="option-title">Ordinal / Label Encoding</span>
+                        <span class="option-desc">Maps each distinct category to an integer from 0 to K-1.</span>
+                    </div>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="encoding" value="none">
+                    <div>
+                        <span class="option-title">None</span>
+                        <span class="option-desc">Leaves categorical columns unchanged without encoding.</span>
+                    </div>
+                </label>
             </fieldset>
         </div>
 
         <div class="form-group">
             <fieldset class="radio-group">
                 <legend class="form-label">Feature Scaling</legend>
-                <label class="radio-item"><input type="radio" name="scaling" value="standard" checked> Standard Scaler (Z-Score)</label>
-                <label class="radio-item"><input type="radio" name="scaling" value="minmax"> Min-Max Scaler [0, 1]</label>
-                <label class="radio-item"><input type="radio" name="scaling" value="none"> None</label>
+                <p class="form-text" style="margin-bottom: 0.5rem;">Adjusts numerical feature magnitudes so no single feature dominates gradient updates.</p>
+                <label class="radio-item">
+                    <input type="radio" name="scaling" value="standard" checked>
+                    <div>
+                        <span class="option-title">Standard Scaler (Z-Score)</span>
+                        <span class="option-desc">Transforms distribution to mean 0 and standard deviation 1.</span>
+                    </div>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="scaling" value="minmax">
+                    <div>
+                        <span class="option-title">Min-Max Scaler [0, 1]</span>
+                        <span class="option-desc">Rescales all numerical values to a bounded interval between 0 and 1.</span>
+                    </div>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="scaling" value="none">
+                    <div>
+                        <span class="option-title">None</span>
+                        <span class="option-desc">Preserves raw numeric feature magnitudes.</span>
+                    </div>
+                </label>
             </fieldset>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.25rem;">
-            <div>
-                <label class="form-label" for="test_size">Test Split Ratio</label>
-                <input type="number" step="0.05" min="0.05" max="0.5" name="test_size" id="test_size" value="0.2" class="form-control">
-                <small style="color: #64748b;">Default: 0.2 (80% Train, 20% Test)</small>
-            </div>
-            <div style="display: flex; align-items: center; padding-top: 1.5rem;">
-                <label class="checkbox-item" style="font-weight: 500;">
-                    <input type="checkbox" name="handle_duplicates" checked>
-                    Remove duplicate rows automatically
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="test_size">
+                    Test Split Ratio <span class="field-required">*</span>
                 </label>
+                <input type="number" step="0.05" min="0.05" max="0.5" name="test_size" id="test_size" value="0.2" class="form-control" aria-describedby="test-size-help" required>
+                <small class="form-hint" id="test-size-help">Hold-out ratio (0.05 to 0.50). Default: 0.20 (80% Train, 20% Test).</small>
+            </div>
+            <div class="form-group" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: center;">
+                <label class="checkbox-item" for="handle_duplicates" style="font-weight: 600;">
+                    <input type="checkbox" name="handle_duplicates" id="handle_duplicates" aria-describedby="dup-help" checked>
+                    <span>Remove duplicate rows automatically</span>
+                </label>
+                <small class="form-hint" id="dup-help" style="margin-left: 1.5rem;">Eliminates identical duplicate rows before splitting data.</small>
             </div>
         </div>
 
-        <button type="submit" class="btn">Apply Preprocessing & Prepare Data</button>
+        <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 1rem;">
+            <span aria-hidden="true">⚙️</span> Apply Preprocessing & Prepare Data
+        </button>
     </form>
 </div>
 
 {% if summary %}
 <div class="card">
-    <h2 class="card-title">Preprocessing Execution Summary</h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
-        <div style="background: var(--gray-50); padding: 1rem; border-radius: 6px; text-align: center;">
-            <div style="font-size: 0.8rem; color: #64748b;">TRAIN SAMPLES</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">{{ summary.train_samples }}</div>
+    <div class="card-header">
+        <h2 class="card-title">Preprocessing Execution Summary</h2>
+        <p class="card-desc">Summary of dataset transformations, feature encoding, scaling, and partitioned sample counts.</p>
+    </div>
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-card-label">TRAIN SAMPLES</div>
+            <div class="summary-card-val">{{ summary.train_samples }}</div>
         </div>
-        <div style="background: var(--gray-50); padding: 1rem; border-radius: 6px; text-align: center;">
-            <div style="font-size: 0.8rem; color: #64748b;">TEST SAMPLES</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">{{ summary.test_samples }}</div>
+        <div class="summary-card">
+            <div class="summary-card-label">TEST SAMPLES</div>
+            <div class="summary-card-val">{{ summary.test_samples }}</div>
         </div>
-        <div style="background: var(--gray-50); padding: 1rem; border-radius: 6px; text-align: center;">
-            <div style="font-size: 0.8rem; color: #64748b;">FINAL FEATURES</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">{{ summary.transformed_features_count }}</div>
+        <div class="summary-card">
+            <div class="summary-card-label">FINAL FEATURES</div>
+            <div class="summary-card-val">{{ summary.transformed_features_count }}</div>
         </div>
-        <div style="background: var(--gray-50); padding: 1rem; border-radius: 6px; text-align: center;">
-            <div style="font-size: 0.8rem; color: #64748b;">DUPLICATES DROPPED</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #16a34a;">{{ summary.duplicates_removed }}</div>
+        <div class="summary-card">
+            <div class="summary-card-label">DUPLICATES DROPPED</div>
+            <div class="summary-card-val" style="color: var(--success);">{{ summary.duplicates_removed }}</div>
         </div>
     </div>
 </div>
 
 {% if preview %}
 <div class="card">
-    <h2 class="card-title">Transformed Training Features (X_train Sample)</h2>
-    <p class="card-desc">Preview of preprocessed and scaled feature vectors ready for machine learning model training.</p>
-    <div class="table-container">
+    <div class="card-header">
+        <h2 class="card-title">Transformed Training Features (X_train Sample)</h2>
+        <p class="card-desc">Preview of preprocessed and scaled feature vectors ready for machine learning model training.</p>
+    </div>
+    <div class="table-container" role="region" aria-label="Transformed features preview" tabindex="0">
         <table>
             <caption class="visually-hidden">Transformed training features, first five rows</caption>
             <thead>
@@ -214,8 +318,12 @@
             </tbody>
         </table>
     </div>
+    <div style="margin-top: 1.25rem;">
+        <a href="{% url 'experiment-train-web' dataset.id %}" class="btn btn-primary">
+            &rarr; Proceed to Train Model
+        </a>
+    </div>
 </div>
 {% endif %}
 {% endif %}
 {% endblock %}
-
