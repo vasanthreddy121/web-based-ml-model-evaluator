@@ -1,0 +1,67 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam roundcorner 10
+skinparam actorStyle awesome
+skinparam defaultFontName Helvetica, Arial, sans-serif
+
+actor "Normal User\n(Student / Researcher)" as user
+actor "Administrator\n(Guide / Evaluator)" as admin
+
+rectangle "System Boundary: Web-Based ML Model Evaluator" {
+    package "Authentication" {
+        usecase "Authenticate User\n(Register / Login / Logout)\n[F-001, F-002, F-003]" as UC_Auth
+    }
+    
+    package "Dataset Management" {
+        usecase "Upload CSV Dataset\n[ML-EVAL-F-010]" as UC_Upload
+        usecase "Validate File & MIME\n[ML-EVAL-F-011 / SR-003]" as UC_Val
+        usecase "Preview & Profile Dataset\n[ML-EVAL-F-012]" as UC_Prev
+        usecase "Configure Preprocessing\n(Impute / Encode / Scale)\n[ML-EVAL-F-013, F-014]" as UC_Prep
+        usecase "Select Features, Target & Split\n[ML-EVAL-F-015]" as UC_Split
+    }
+    
+    package "Model Training & Evaluation" {
+        usecase "Select Problem Type & Model\n(6 Clf / 5 Reg Algorithms)\n[ML-EVAL-F-020–022]" as UC_Model
+        usecase "Configure Hyperparameters\n[ML-EVAL-F-023]" as UC_Config
+        usecase "Train Model on Data\n[ML-EVAL-F-030]" as UC_Train
+        usecase "Report Controlled Error\n[ML-EVAL-F-034]" as UC_Error
+        usecase "Generate Predictions & Metrics\n(Acc, F1, ROC / MAE, RMSE)\n[ML-EVAL-F-031–033]" as UC_Eval
+    }
+    
+    package "Comparison, History & Export" {
+        usecase "Compare Multiple Experiments\n[ML-EVAL-F-040]" as UC_Comp
+        usecase "Render Visualizations & Charts\n(Confusion Matrix, ROC)\n[ML-EVAL-F-041]" as UC_Vis
+        usecase "View Experiment History\n[ML-EVAL-F-042]" as UC_Hist
+        usecase "Export Results (CSV / JSON)\n[ML-EVAL-F-043]" as UC_Exp
+    }
+    
+    package "Administration" {
+        usecase "Manage User Accounts\n(Django Admin / Auth)" as UC_AdmUsers
+        usecase "Review & Delete Resources\n(Datasets & Experiments)" as UC_AdmRes
+        usecase "Monitor Activity & Logs\n(System Audit)" as UC_AdmMon
+    }
+}
+
+user --> UC_Auth
+user --> UC_Upload
+user --> UC_Prev
+user --> UC_Prep
+user --> UC_Split
+user --> UC_Model
+user --> UC_Config
+user --> UC_Train
+user --> UC_Comp
+user --> UC_Hist
+user --> UC_Exp
+
+UC_Upload ..> UC_Val : <<include>>
+UC_Train ..> UC_Eval : <<include>>
+UC_Eval ..> UC_Vis : <<include>>
+UC_Comp ..> UC_Vis : <<include>>
+UC_Error ..> UC_Train : <<extend>>
+
+admin --> UC_AdmUsers
+admin --> UC_AdmRes
+admin --> UC_AdmMon
+@enduml

@@ -1,0 +1,59 @@
+digraph ERD {
+    graph [rankdir=LR, bgcolor="#FFFFFF", fontname="Helvetica,Arial,sans-serif", nodesep=0.6, ranksep=0.9];
+    node [shape=none, fontname="Helvetica,Arial,sans-serif", fontsize=10];
+    edge [fontname="Helvetica,Arial,sans-serif", fontsize=9, color="#334155", penwidth=1.5];
+
+    // User Table
+    user [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" style="rounded" bgcolor="#FFFFFF" color="#1E3A8A">
+        <tr><td bgcolor="#1E3A8A" align="center" colspan="3"><font color="#FFFFFF"><b>auth_user (User)</b></font></td></tr>
+        <tr><td align="left"><font color="#B45309"><b>PK</b></font></td><td align="left"><b>id</b></td><td align="left"><font color="#64748B">INTEGER (Auto)</font></td></tr>
+        <tr><td align="left"></td><td align="left">username</td><td align="left"><font color="#64748B">VARCHAR(150) [UNIQUE]</font></td></tr>
+        <tr><td align="left"></td><td align="left">email</td><td align="left"><font color="#64748B">VARCHAR(254)</font></td></tr>
+        <tr><td align="left"></td><td align="left">password</td><td align="left"><font color="#64748B">VARCHAR(128) [PBKDF2 SHA256]</font></td></tr>
+        <tr><td align="left"></td><td align="left">is_staff</td><td align="left"><font color="#64748B">BOOLEAN</font></td></tr>
+        <tr><td align="left"></td><td align="left">is_active</td><td align="left"><font color="#64748B">BOOLEAN</font></td></tr>
+        <tr><td align="left"></td><td align="left">date_joined</td><td align="left"><font color="#64748B">DATETIME</font></td></tr>
+    </table>>];
+
+    // Dataset Table
+    dataset [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" style="rounded" bgcolor="#FFFFFF" color="#047857">
+        <tr><td bgcolor="#047857" align="center" colspan="3"><font color="#FFFFFF"><b>datasets_dataset (Dataset)</b></font></td></tr>
+        <tr><td align="left"><font color="#B45309"><b>PK</b></font></td><td align="left"><b>id</b></td><td align="left"><font color="#64748B">BIGINT (Auto)</font></td></tr>
+        <tr><td align="left"><font color="#1D4ED8"><b>FK</b></font></td><td align="left">user_id</td><td align="left"><font color="#64748B">INTEGER [NULL, CASCADE]</font></td></tr>
+        <tr><td align="left"></td><td align="left">filename</td><td align="left"><font color="#64748B">VARCHAR(255)</font></td></tr>
+        <tr><td align="left"></td><td align="left">file</td><td align="left"><font color="#64748B">VARCHAR(100) [Storage path]</font></td></tr>
+        <tr><td align="left"></td><td align="left">file_size</td><td align="left"><font color="#64748B">BIGINT (Bytes)</font></td></tr>
+        <tr><td align="left"></td><td align="left">row_count</td><td align="left"><font color="#64748B">INTEGER</font></td></tr>
+        <tr><td align="left"></td><td align="left">column_count</td><td align="left"><font color="#64748B">INTEGER</font></td></tr>
+        <tr><td align="left"></td><td align="left">columns</td><td align="left"><font color="#64748B">JSON [Column names]</font></td></tr>
+        <tr><td align="left"></td><td align="left">uploaded_at</td><td align="left"><font color="#64748B">DATETIME (Auto)</font></td></tr>
+    </table>>];
+
+    // Experiment Table
+    experiment [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" style="rounded" bgcolor="#FFFFFF" color="#6D28D9">
+        <tr><td bgcolor="#6D28D9" align="center" colspan="3"><font color="#FFFFFF"><b>experiments_experiment (Experiment)</b></font></td></tr>
+        <tr><td align="left"><font color="#B45309"><b>PK</b></font></td><td align="left"><b>id</b></td><td align="left"><font color="#64748B">BIGINT (Auto)</font></td></tr>
+        <tr><td align="left"><font color="#1D4ED8"><b>FK</b></font></td><td align="left">user_id</td><td align="left"><font color="#64748B">INTEGER [NULL, CASCADE]</font></td></tr>
+        <tr><td align="left"><font color="#1D4ED8"><b>FK</b></font></td><td align="left">dataset_id</td><td align="left"><font color="#64748B">BIGINT [CASCADE]</font></td></tr>
+        <tr><td align="left"></td><td align="left">name</td><td align="left"><font color="#64748B">VARCHAR(255)</font></td></tr>
+        <tr><td align="left"></td><td align="left">problem_type</td><td align="left"><font color="#64748B">VARCHAR(50) ['classification','regression']</font></td></tr>
+        <tr><td align="left"></td><td align="left">model_name</td><td align="left"><font color="#64748B">VARCHAR(100)</font></td></tr>
+        <tr><td align="left"></td><td align="left">model_display_name</td><td align="left"><font color="#64748B">VARCHAR(150)</font></td></tr>
+        <tr><td align="left"></td><td align="left">hyperparameters</td><td align="left"><font color="#64748B">JSON [Sanitized parameters]</font></td></tr>
+        <tr><td align="left"></td><td align="left">preprocessing_config</td><td align="left"><font color="#64748B">JSON [Impute, Scale, Encode, Split]</font></td></tr>
+        <tr><td align="left"></td><td align="left">metrics</td><td align="left"><font color="#64748B">JSON [Acc, Prec, Rec, F1, CM / MAE, RMSE, R²]</font></td></tr>
+        <tr><td align="left"></td><td align="left">predictions_sample</td><td align="left"><font color="#64748B">JSON [Sample test records]</font></td></tr>
+        <tr><td align="left"></td><td align="left">training_time_seconds</td><td align="left"><font color="#64748B">FLOAT</font></td></tr>
+        <tr><td align="left"></td><td align="left">status</td><td align="left"><font color="#64748B">VARCHAR(20) ['completed','failed']</font></td></tr>
+        <tr><td align="left"></td><td align="left">error_message</td><td align="left"><font color="#64748B">TEXT [NULL]</font></td></tr>
+        <tr><td align="left"></td><td align="left">created_at</td><td align="left"><font color="#64748B">DATETIME (Auto)</font></td></tr>
+    </table>>];
+
+    // Relationships with Crow's Foot / UML Cardinality Notation
+    user -> dataset [label="  1 : 0..*  
+  owns  ", taillabel="1", headlabel="0..*", arrowhead="crow", arrowtail="none"];
+    user -> experiment [label="  1 : 0..*  
+  executes  ", taillabel="1", headlabel="0..*", arrowhead="crow", arrowtail="none"];
+    dataset -> experiment [label="  1 : 0..*  
+  evaluated in  ", taillabel="1", headlabel="0..*", arrowhead="crow", arrowtail="none"];
+}

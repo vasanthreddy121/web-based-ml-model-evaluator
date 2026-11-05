@@ -1,0 +1,54 @@
+@startuml
+skinparam linetype ortho
+skinparam roundcorner 5
+skinparam classFontSize 10
+skinparam classFontName Helvetica, Arial, sans-serif
+
+entity "auth_user (User)" as User {
+    * id : INTEGER <<PK, Auto>>
+    --
+    * username : VARCHAR(150) <<UNIQUE>>
+    * email : VARCHAR(254)
+    * password : VARCHAR(128) <<PBKDF2 Hashed>>
+    * is_staff : BOOLEAN
+    * is_active : BOOLEAN
+    * date_joined : DATETIME
+}
+
+entity "datasets_dataset (Dataset)" as Dataset {
+    * id : BIGINT <<PK, Auto>>
+    --
+    user_id : INTEGER <<FK, Nullable>>
+    * filename : VARCHAR(255)
+    * file : VARCHAR(100)
+    * file_size : BIGINT
+    * row_count : INTEGER
+    * column_count : INTEGER
+    * columns : JSON
+    * uploaded_at : DATETIME
+}
+
+entity "experiments_experiment (Experiment)" as Experiment {
+    * id : BIGINT <<PK, Auto>>
+    --
+    user_id : INTEGER <<FK, Nullable>>
+    * dataset_id : BIGINT <<FK>>
+    * name : VARCHAR(255)
+    * problem_type : VARCHAR(50)
+    * model_name : VARCHAR(100)
+    * model_display_name : VARCHAR(150)
+    * hyperparameters : JSON
+    * preprocessing_config : JSON
+    * metrics : JSON
+    * predictions_sample : JSON
+    * training_time_seconds : FLOAT
+    * status : VARCHAR(20)
+    error_message : TEXT <<Nullable>>
+    * created_at : DATETIME
+}
+
+User ||--o{ Dataset : "owns (1 : 0..*)"
+User ||--o{ Experiment : "executes (1 : 0..*)"
+Dataset ||--o{ Experiment : "evaluated in (1 : 0..*)"
+
+@enduml
