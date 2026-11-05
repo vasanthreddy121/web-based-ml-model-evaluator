@@ -14,7 +14,8 @@ The following documents describe the requirements, architecture, testing strateg
 - **[Software Architecture Design (SAD)](docs/docs/Software_Architecture_Design/SAD_TEAM_16_SE.pdf)**
 - **[Software Test Plan (STP)](docs/Test_Plan/Web_Based_ML_Model_Evaluator_STP_TEAM16.pdf)**
 - **[Requirements Traceability Matrix (RTM)](docs/REQUIREMENTS_TRACEABILITY_MATRIX.md)**
-- **[Automated Test Execution Report (48/48 Tests Passed)](docs/TEST_EXECUTION_REPORT.md)**
+- **[Automated Test Execution Report (188/188 Tests Passed)](docs/TEST_EXECUTION_REPORT.md)**
+  - *Dedicated Reports:* [Unit Testing (187 tests)](docs/testing/UNIT_TEST_REPORT.md) | [System Validation (E2E & Security)](docs/testing/SYSTEM_VALIDATION_REPORT.md) | [Code Coverage (85.6% Core / 93.5% Total)](docs/testing/CODE_COVERAGE_REPORT.md) | [Branch Coverage (74.4% Core / 75.2% Total)](docs/testing/BRANCH_COVERAGE_REPORT.md)
 - **[Sprint Report (Part 2 — 26 Story Points)](docs/SPRINT_REPORT_PART2.md)**
 - **[Project Deviation Log](docs/DEVIATION_LOG.md)**
 - **[Pull Request & Commit Manifest](docs/PULL_REQUEST_TEMPLATES.md)**
@@ -123,7 +124,7 @@ The major architectural layers include:
 
 The architecture document also describes the major system components, their responsibilities, interactions, data flow, security considerations, deployment considerations, and architectural decisions.
 
-**[View the complete Software Architecture Design](docs/Software_Architecture_Design/Software_Architecture_Design.pdf)**
+**[View the complete Software Architecture Design](docs/docs/Software_Architecture_Design/SAD_TEAM_16_SE.pdf)**
 
 ---
 

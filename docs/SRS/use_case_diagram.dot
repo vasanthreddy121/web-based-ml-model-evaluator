@@ -1,0 +1,136 @@
+digraph UML_UseCase {
+    rankdir=LR;
+    fontname="Helvetica,Arial,sans-serif";
+    node [fontname="Helvetica,Arial,sans-serif", fontsize=10];
+    edge [fontname="Helvetica,Arial,sans-serif", fontsize=9];
+    compound=true;
+    nodesep=0.35;
+    ranksep=0.7;
+
+    // Actors (left and right)
+    subgraph cluster_actors_left {
+        style=invis;
+        user [shape=none, label=<<table border="0" cellborder="0" cellspacing="4">
+            <tr><td><font point-size="12"><b>«Actor»</b></font></td></tr>
+            <tr><td><font point-size="13"><b>Normal User</b></font></td></tr>
+            <tr><td><font point-size="10" color="#475569">(Student / Researcher)</font></td></tr>
+        </table>>];
+    }
+
+    subgraph cluster_actors_right {
+        style=invis;
+        admin [shape=none, label=<<table border="0" cellborder="0" cellspacing="4">
+            <tr><td><font point-size="12"><b>«Actor»</b></font></td></tr>
+            <tr><td><font point-size="13"><b>Administrator</b></font></td></tr>
+            <tr><td><font point-size="10" color="#475569">(Guide / Evaluator)</font></td></tr>
+        </table>>];
+    }
+
+    // System Boundary
+    subgraph cluster_system {
+        label = "System Boundary: Web-Based ML Model Evaluator";
+        style = "solid,rounded";
+        color = "#1E3A8A";
+        penwidth = 2.0;
+        bgcolor = "#F8FAFC";
+        fontname = "Helvetica-Bold,Arial,sans-serif";
+        fontsize = 13;
+        fontcolor = "#0F172A";
+        margin = 25;
+
+        // Column 1: Primary User Interaction Cases
+        subgraph cluster_col1 {
+            style=invis;
+            node [shape=ellipse, style="filled", fillcolor="#FFFFFF", color="#2563EB", penwidth=1.3, margin="0.12,0.06"];
+            
+            uc_auth [label="Authenticate User
+(Register / Login / Logout)
+[F-001, F-002, F-003]"];
+            uc_upload [label="Upload CSV Dataset
+[ML-EVAL-F-010]"];
+            uc_preview [label="Preview & Profile Dataset
+[ML-EVAL-F-012]"];
+            uc_preprocess [label="Configure Preprocessing
+(Impute / Encode / Scale)
+[ML-EVAL-F-013, F-014]"];
+            uc_select [label="Select Features, Target & Split
+[ML-EVAL-F-015]"];
+            uc_model [label="Select Problem Type & Model
+(6 Clf / 5 Reg Algorithms)
+[ML-EVAL-F-020–022]"];
+        }
+
+        // Column 2: Execution, Evaluation & Analysis Cases
+        subgraph cluster_col2 {
+            style=invis;
+            node [shape=ellipse, style="filled", fillcolor="#FFFFFF", color="#2563EB", penwidth=1.3, margin="0.12,0.06"];
+
+            uc_config [label="Configure Hyperparameters
+[ML-EVAL-F-023]"];
+            uc_train [label="Train Model on Data
+[ML-EVAL-F-030]"];
+            uc_eval [label="Generate Predictions & Metrics
+(Acc, F1, ROC / MAE, RMSE)
+[ML-EVAL-F-031–033]"];
+            uc_compare [label="Compare Multiple Experiments
+[ML-EVAL-F-040]"];
+            uc_history [label="View Experiment History
+[ML-EVAL-F-042]"];
+            uc_export [label="Export Results (CSV / JSON)
+[ML-EVAL-F-043]"];
+        }
+
+        // Secondary / Included Cases
+        subgraph cluster_col3 {
+            style=invis;
+            node [shape=ellipse, style="filled", fillcolor="#EFF6FF", color="#3B82F6", penwidth=1.2, margin="0.1,0.05"];
+            uc_validate [label="Validate File & MIME
+[F-011 / SR-003]"];
+            uc_visualize [label="Render Visualizations & Charts
+(Confusion Matrix, ROC)
+[ML-EVAL-F-041]"];
+            uc_error [label="Report Controlled Error
+[ML-EVAL-F-034]", style="filled,dashed", fillcolor="#FEF2F2", color="#DC2626"];
+
+            // Admin Cases inside system boundary
+            node [shape=ellipse, style="filled", fillcolor="#FAF5FF", color="#7C3AED", penwidth=1.2];
+            uc_admin_users [label="Manage User Accounts
+(Django Admin / Auth)"];
+            uc_admin_res [label="Review & Delete Resources
+(Datasets & Experiments)"];
+            uc_admin_monitor [label="Monitor Activity & Logs
+(System Audit)"];
+        }
+    }
+
+    // User associations to primary use cases
+    edge [color="#1E293B", penwidth=1.2, arrowhead=none];
+    user -> uc_auth;
+    user -> uc_upload;
+    user -> uc_preview;
+    user -> uc_preprocess;
+    user -> uc_select;
+    user -> uc_model;
+    user -> uc_config;
+    user -> uc_train;
+    user -> uc_compare;
+    user -> uc_history;
+    user -> uc_export;
+
+    // Admin associations
+    edge [color="#7C3AED", penwidth=1.2, arrowhead=none];
+    admin -> uc_admin_users;
+    admin -> uc_admin_res;
+    admin -> uc_admin_monitor;
+
+    // UML <<include>> relationships
+    edge [style="dashed", color="#2563EB", penwidth=1.0, arrowhead="open", fontsize=8];
+    uc_upload -> uc_validate [label="«include»"];
+    uc_train -> uc_eval [label="«include»"];
+    uc_compare -> uc_visualize [label="«include»"];
+    uc_eval -> uc_visualize [label="«include»"];
+
+    // UML <<extend>> relationships
+    edge [style="dashed", color="#DC2626", penwidth=1.0, arrowhead="open", fontsize=8];
+    uc_error -> uc_train [label="«extend»"];
+}
