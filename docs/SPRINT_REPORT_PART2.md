@@ -3,20 +3,28 @@
 **Project:** Web-Based ML Model Evaluator  
 **Team 16 Members:**
 - Vasanth Kumar Reddy (PES2UG25CS829, `@vasanthreddy121`) — Team Lead / Repo Owner
+- Munireddy S (PES2UG25CS813, `@munireddy8618`)
+- Sharath H M (PES2UG25CS822, `@Sharustd`)
+- Manoj M S (PES2UG25CS810)
 - Munireddy S (PES2UG25CS813, `@munireddy8618`) — Core Developer / QA
 - Sharath H M (PES2UG25CS822, `@Sharustd`) — Core Developer / UI & Security
 - Manoj M S (PES2UG25CS810, `@ManuManu2007`) — Core Developer / UX & Accessibility
 
+**Date of Report:** October 28, 2026  
+**Schedule Context:** Sprint 2 (October 26–30, 2026)
 **Date of Initial Report:** October 28, 2026  
 **Schedule Context:** Sprint 2 (October 26–30, 2026)  
 **Last Updated (Final Delivery):** November 6, 2026  
 
 ---
 
+## 1. Backlog & Story Points Overview
 ## 1. Backlog & Story Points Overview (Sprint 2 Baseline)
 
+Per Part 2 requirements, the project backlog was established in GitHub with 5 prioritized user stories mapped to SRS Functional Requirements, assigned to team members, and estimated at **26 total story points**:
 Per Part 2 requirements, the initial project backlog was established in GitHub with 5 prioritized user stories mapped to SRS Functional Requirements, assigned to team members, and estimated at **26 total story points**:
 
+| Issue # | User Story Title | Assignee | Story Points | Sprint | Implementation Status | Verified Automated Tests |
 | Issue # | User Story Title | Assignee | Story Points | Sprint | Implementation Status | Verified Automated Tests (Sprint Baseline) |
 |:---:|---|---|:---:|:---:|:---:|:---:|
 | **#1** | Implement dataset upload and validation | `@vasanthreddy121` | 5 | Sprint 1 | **Implemented & Verified** | 12 tests (`tests/test_dataset_upload.py`) |
@@ -27,6 +35,7 @@ Per Part 2 requirements, the initial project backlog was established in GitHub w
 | **Bonus**| User Authentication & Cross-User Security | Team 16 | - | Core | **Implemented & Verified** | 7 tests (`tests/test_authentication.py`) |
 | **Bonus**| End-to-End System Integration | Team 16 | - | Core | **Implemented & Verified** | 1 test (`tests/test_end_to_end_integration.py`) |
 
+**Total Backlog Points:** 26 / 26 SP completed and verified with 48 automated tests.
 **Sprint 2 Completed Backlog Points:** 26 / 26 SP completed and verified with 48 automated tests (as of October 28, 2026).
 
 ---
@@ -65,8 +74,11 @@ Per Part 2 requirements, the initial project backlog was established in GitHub w
 
 ---
 
+## 4. GitHub Project Board Alignment
 ## 4. GitHub Project Board Alignment (Historical Sprint 2 State)
 
+The Project Board columns should be updated as follows:
+- **Backlog:** (Empty - all items implemented)
 The Project Board columns at the conclusion of Sprint 2:
 - **Backlog:** (Empty - all initial items implemented)
 - **Ready:** (Empty)
@@ -78,13 +90,17 @@ The Project Board columns at the conclusion of Sprint 2:
   - Issue #4: `Implement machine learning model training and prediction` (PR description ready)
   - Issue #5: `Implement model evaluation metrics and results visualization` (PR description ready)
   - CI Pipeline: `Add GitHub Actions CI workflow` (PR description ready)
+- **Done:** (To be moved upon repository owner PR review and merge)
 - **Done:** (Moved upon repository owner PR review and merge via PR #6)
 
 ---
 
+## 5. Deliverables & Demonstration Status
 ## 5. Deliverables & Demonstration Status (Sprint Baseline vs. Current)
 
 - **Codebase:** Fully functional web application running locally with Django, DRF, Pandas, and Scikit-learn.
+- **Automated Tests:** 48 passing tests running in under 35 seconds.
+- **CI Configuration:** Automated workflow ready in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 - **Automated Tests:**
   - *Sprint 2 Historical Baseline (October 28, 2026):* 48 passing tests in ~15.16 seconds.
   - *Current Verified Suite (Final Delivery):* **188 passing tests** (187 unit/component tests + 1 end-to-end workflow test, 0 failures, 0 errors, 2 warnings) running in ~43.27 seconds.
